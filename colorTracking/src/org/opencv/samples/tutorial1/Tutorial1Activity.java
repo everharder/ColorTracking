@@ -253,13 +253,17 @@ public class Tutorial1Activity extends Activity implements
 
 	public Mat onCameraFrame(CvCameraViewFrame inputFrame) {
 		this.mCapture = inputFrame.rgba();
+		// Make copy of captured image.
+		Mat mCopy = this.mCapture.clone();
 
 		// Draw cross for color calibration.
 		if (isColor(this.menuState)) {
-			Core.line(this.mCapture, new Point(0, 720 / 2), new Point(
+			Core.line(mCopy, new Point(0, displayWidth / 2), new Point(
 					displayHeight, touchY), new Scalar(255, 255, 255));
-			Core.line(this.mCapture, new Point(1280 / 2, 0), new Point(touchX,
+			Core.line(mCopy, new Point(displayHeight / 2, 0), new Point(touchX,
 					displayWidth), new Scalar(255, 255, 255));
+
+			return mCopy;
 		}
 
 		if (this.touchedObj) {
@@ -269,8 +273,6 @@ public class Tutorial1Activity extends Activity implements
 
 				return this.mCapture;
 			}
-			// Make copy of captured image.
-			Mat mCopy = this.mCapture.clone();
 			// Back Projection
 			List<Mat> backProjects = calcBackProjects(mCopy);
 			// Segmentation
@@ -287,10 +289,6 @@ public class Tutorial1Activity extends Activity implements
 			// Display bottom points.
 			for (Point p : bottoms)
 				Core.circle(this.mCapture, p, 10, new Scalar(255, 255, 255), 5);
-
-			mCopy.release();
-			backProjects.clear();
-			segments.clear();
 
 			if (!isCalibrated(this.mHomography)) {
 				this.touchedObj = false;
@@ -310,9 +308,13 @@ public class Tutorial1Activity extends Activity implements
 						Core.FONT_HERSHEY_PLAIN, 2, new Scalar(255, 255, 255));
 			}
 
+			backProjects.clear();
+			segments.clear();
 			bottoms.clear();
 			distances.clear();
 		}
+
+		mCopy.release();
 
 		return this.mCapture;
 	}
@@ -726,7 +728,7 @@ public class Tutorial1Activity extends Activity implements
 	 * @return List of biggest contour(s).
 	 */
 	private List<MatOfPoint> findBiggestContours(Mat mImg) {
-		double var = 0.1;
+		double var = 0.5;
 		double maxArea = 0;
 		Mat mCopy = mImg.clone();
 		// This list contains all contours in the processed image.
@@ -737,17 +739,17 @@ public class Tutorial1Activity extends Activity implements
 		Imgproc.findContours(mCopy, contours, new Mat(), Imgproc.RETR_EXTERNAL,
 				Imgproc.CHAIN_APPROX_SIMPLE);
 
-		for (MatOfPoint mop : contours) {
-			double area = Imgproc.contourArea(mop);
+		for (MatOfPoint c : contours) {
+			double area = Imgproc.contourArea(c);
 
 			// Clear only contours which are 'var'-times greater than maxArea.
-			if (area - maxArea * var > maxArea)
+			if (area > maxArea * (1 + var)) {
 				contoursBig.clear();
-			// Add contours which are at least 'var'-times of maxArea.
-			if (area + maxArea * var >= maxArea) {
-				contoursBig.add(mop);
 				maxArea = area;
 			}
+			// Add contours which are at least 'var'-times of maxArea.
+			if (area >= maxArea * (1 - var))
+				contoursBig.add(c);
 		}
 
 		contours.clear();
