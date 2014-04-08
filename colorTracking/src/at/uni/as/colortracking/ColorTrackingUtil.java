@@ -1,4 +1,4 @@
-package at.uni.as.colotracking;
+package at.uni.as.colortracking;
 
 import java.util.ArrayList;
 import java.util.Iterator;
@@ -71,8 +71,10 @@ public class ColorTrackingUtil {
 		if (mPatternWasFound) {
 			// Calib3d.drawChessboardCorners(mRgba, mPatternSize, mCorners,
 			// mPatternWasFound);//for testing
-			mCornersBuffer.add(mCorners.clone());
+			Mat cornersClone = mCorners.clone();
+			mCornersBuffer.add(cornersClone);
 			homography = Calib3d.findHomography(mCorners, RealWorldC);
+			cornersClone.release();
 		}
 
 		gray.release();
@@ -82,7 +84,7 @@ public class ColorTrackingUtil {
 
 		return homography;
 	}
-	
+
 	/**
 	 * Converts an image from RGB format to RG format with separated channels.
 	 * 
@@ -105,18 +107,12 @@ public class ColorTrackingUtil {
 		chG = (Mat) splitImages.get(1);
 		chB = (Mat) splitImages.get(2);
 
-		Core.divide(chR, new Scalar(255.0), r, CvType.CV_64F);// dividing it at
-																// first in
-																// order not to
-																// lose data
-		Core.divide(chG, new Scalar(255.0), g, CvType.CV_64F);// and to have
-																// scaled data
-																// to values
-																// 0-255
+		Core.divide(chR, new Scalar(255.0), r, CvType.CV_64F);
+		Core.divide(chG, new Scalar(255.0), g, CvType.CV_64F);
 		Core.divide(chB, new Scalar(255.0), b, CvType.CV_64F);
 
 		Mat mSum = new MatOfFloat();
-		Core.add(r, g, mSum); 
+		Core.add(r, g, mSum);
 		Core.add(mSum, b, mSum);
 
 		Core.divide(chR, mSum, chR, CvType.CV_64F);// getting RG chromacity
@@ -126,7 +122,7 @@ public class ColorTrackingUtil {
 		ArrayList<Mat> mv = new ArrayList<Mat>();
 		mv.add(0, (Mat) chR); // mv contains rg values of pictures
 		mv.add(1, (Mat) chG);
-		
+
 		r.release();
 		g.release();
 		b.release();
@@ -134,7 +130,7 @@ public class ColorTrackingUtil {
 
 		return mv;
 	}
-	
+
 	/**
 	 * Searches for the biggest contour(s) in the image.
 	 * 
@@ -142,18 +138,17 @@ public class ColorTrackingUtil {
 	 *            Image.
 	 * @return List of biggest contour(s).
 	 */
-	public static MatOfPoint getBiggestContour(Mat mImg) {
+	public static MatOfPoint getBiggestContour(Mat img) {
 		double var = 0.5;
 		double maxArea = 0;
-		Mat mCopy = mImg.clone();
+
 		// This list contains all contours in the processed image.
-		List<MatOfPoint> contours = new ArrayList<MatOfPoint>();
-		// This list where contains only biggest contour(s)
-		MatOfPoint biggest = new MatOfPoint();
+		List<MatOfPoint> contours = getContours(img);
 
-		Imgproc.findContours(mCopy, contours, new Mat(), Imgproc.RETR_EXTERNAL,
-				Imgproc.CHAIN_APPROX_SIMPLE);
-
+		if(contours.size() == 0)
+			return null;
+		
+		MatOfPoint biggest = null;
 		for (MatOfPoint c : contours) {
 			double area = Imgproc.contourArea(c);
 
@@ -161,15 +156,24 @@ public class ColorTrackingUtil {
 			if (area > maxArea * (1 + var)) {
 				biggest = c;
 				maxArea = area;
-			}
+			} else			
+				c.release();
 		}
-
-		contours.clear();
-		mCopy.release();
 
 		return biggest;
 	}
 	
+	public static List<MatOfPoint> getContours(Mat img) {
+		List<MatOfPoint> contours = new ArrayList<MatOfPoint>();
+		Mat clone = img.clone();
+		
+		Imgproc.findContours(clone, contours, new Mat(), Imgproc.RETR_EXTERNAL, Imgproc.CHAIN_APPROX_SIMPLE);
+		
+		clone.release();
+		
+		return contours;
+	}
+
 	/**
 	 * Extracts the foreground picture.
 	 * 
@@ -185,21 +189,17 @@ public class ColorTrackingUtil {
 		int cols = image.cols();
 		int rows = image.rows();
 		Rect touchedRect = new Rect();
-		
 		touchedRect.x = (x > 4) ? x - 4 : 0;
 		touchedRect.y = (y > 4) ? y - 4 : 0;
 		touchedRect.width = (x + 4 < cols) ? x + 4 - touchedRect.x : cols
 				- touchedRect.x;
 		touchedRect.height = (y + 4 < rows) ? y + 4 - touchedRect.y : rows
 				- touchedRect.y;
-		
 		Mat touchedRegionRgba = image.submat(touchedRect);
 		Mat touchedRegionHsv = new Mat();
 		Mat mEmpty = new Mat();
-		
 		Imgproc.cvtColor(touchedRegionRgba, touchedRegionHsv,
 				Imgproc.COLOR_RGB2HSV_FULL);
-		
 		// Calculate average color of touched region
 		Scalar hsvColor;
 		hsvColor = Core.sumElems(touchedRegionHsv);
@@ -210,12 +210,12 @@ public class ColorTrackingUtil {
 		Scalar mLowerBound = new Scalar(0);
 		Scalar mUpperBound = new Scalar(0);
 		// spectrum
-		double minH = (hsvColor.val[0] >= mColorRadius.val[0]) ? 
-				        hsvColor.val[0] - mColorRadius.val[0]
-				: 255 - hsvColor.val[0] - mColorRadius.val[0];
-		double maxH = (hsvColor.val[0] + mColorRadius.val[0] <= 255) ? 
-				  hsvColor.val[0] + mColorRadius.val[0]
-				: hsvColor.val[0] + mColorRadius.val[0] - 255;
+		double minH = (hsvColor.val[0] >= mColorRadius.val[0]) ? hsvColor.val[0]
+				- mColorRadius.val[0]
+				: 0;
+		double maxH = (hsvColor.val[0] + mColorRadius.val[0] <= 255) ? hsvColor.val[0]
+				+ mColorRadius.val[0]
+				: 255;
 		mLowerBound.val[0] = minH;
 		mUpperBound.val[0] = maxH;
 		mLowerBound.val[1] = hsvColor.val[1] - mColorRadius.val[1];
@@ -242,6 +242,7 @@ public class ColorTrackingUtil {
 		MatOfPoint contour = new MatOfPoint();
 
 		// image processing
+
 		Imgproc.pyrDown(image, mPyrDownMat);
 		Imgproc.pyrDown(mPyrDownMat, mPyrDownMat);
 		Imgproc.cvtColor(mPyrDownMat, mHsvMat, Imgproc.COLOR_RGB2HSV_FULL);
@@ -255,25 +256,37 @@ public class ColorTrackingUtil {
 
 		// Find max contour area
 		double maxArea = 0;
-		for(MatOfPoint c : contours) {
-			double area = Imgproc.contourArea(c);
+		Iterator<MatOfPoint> each = contours.iterator();
+		while (each.hasNext()) {
+			wrapper = each.next();
+			double area = Imgproc.contourArea(wrapper);
 			if (area > maxArea)
 				maxArea = area;
 		}
-		
 		// Filter contours by area and resize to fit the original image size
 		List<MatOfPoint> mContours = new ArrayList<MatOfPoint>();
 		double mMinContourArea = 0.1;
-		MatOfPoint selectedContour = null;
-		for(MatOfPoint c : contours) {
-			if (Imgproc.contourArea(c) > mMinContourArea * maxArea) {
-				Core.multiply(c, new Scalar(4, 4), c);
-				selectedContour = c;
+		mContours.clear();
+		each = contours.iterator();
+		while (each.hasNext()) {
+			contour = each.next();
+			if (Imgproc.contourArea(contour) > mMinContourArea * maxArea) {
+				Core.multiply(contour, new Scalar(4, 4), contour);
+				mContours.add(contour);
 			}
 		}
 		Mat cli = new Mat();
-		cli = image.submat(Imgproc.boundingRect(contours.get(0)));
-		
+		each = contours.iterator();
+		MatOfPoint contour1 = each.next();
+
+		Rect box = null;
+		box = Imgproc.boundingRect(contour1);
+
+		// conversion from rgba to rgb
+		Mat img = new Mat();
+		Imgproc.cvtColor(image, img, Imgproc.COLOR_RGBA2RGB);
+
+		cli = image.submat(box);
 		// releasing matrix
 		touchedRegionRgba.release();
 		touchedRegionHsv.release();
@@ -285,6 +298,7 @@ public class ColorTrackingUtil {
 		mDilatedMask.release();
 		mHierarchy.release();
 		contours.clear();
+		img.release();
 		mContours.clear();
 		wrapper.release();
 		contour.release();

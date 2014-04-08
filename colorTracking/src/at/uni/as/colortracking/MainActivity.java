@@ -1,4 +1,4 @@
-package at.uni.as.colotracking;
+package at.uni.as.colortracking;
 
 import org.opencv.android.BaseLoaderCallback;
 import org.opencv.android.CameraBridgeViewBase;
@@ -10,7 +10,6 @@ import org.opencv.core.Core;
 import org.opencv.core.Mat;
 import org.opencv.core.Point;
 import org.opencv.core.Scalar;
-import org.opencv.samples.tutorial1.R;
 
 import android.app.Activity;
 import android.os.Bundle;
@@ -23,7 +22,8 @@ import android.view.View;
 import android.view.View.OnTouchListener;
 import android.view.WindowManager;
 import android.widget.Toast;
-import at.uni.as.colotracking.constants.Color;
+import at.uni.as.colortracking.R;
+import at.uni.as.colortracking.constants.Color;
 
 public class MainActivity extends Activity implements
 		CvCameraViewListener2, OnTouchListener {
@@ -135,50 +135,44 @@ public class MainActivity extends Activity implements
 		} else if(item == this.menuHomography) {
 			colorTracking.setCalcProbMap(true);
 		} else if (item == this.menuCalibrateRed) {
-			Toast toast = Toast.makeText(this,
+			Toast.makeText(this,
 					"Touch to calibrate the RED probability matrix",
-					Toast.LENGTH_LONG);
-			toast.show();
+					Toast.LENGTH_SHORT).show();
 			
 			colorTracking.trackColor(Color.RED);
 			displayCross = true;
 		} else if (item == this.menuCalibrateGreen) {
-			Toast toast = Toast.makeText(this,
+			Toast.makeText(this,
 					"Touch to calibrate the GREEN probability matrix",
-					Toast.LENGTH_LONG);
-			toast.show();
+					Toast.LENGTH_SHORT).show();
 			
 			colorTracking.trackColor(Color.GREEN);
 			displayCross = true;
 		} else if (item == this.menuCalibrateBlue) {
-			Toast toast = Toast.makeText(this,
+			Toast.makeText(this,
 					"Touch to calibrate the BLUE probability matrix",
-					Toast.LENGTH_LONG);
-			toast.show();
+					Toast.LENGTH_SHORT).show();
 			
 			colorTracking.trackColor(Color.BLUE);
 			displayCross = true;
 		} else if (item == this.menuCalibrateYellow) {
-			Toast toast = Toast.makeText(this,
+			Toast.makeText(this,
 					"Touch to calibrate the YELLOW probability matrix",
-					Toast.LENGTH_LONG);
-			toast.show();
+					Toast.LENGTH_SHORT).show();
 			
 			colorTracking.trackColor(Color.YELLOW);
 			displayCross = true;
 		} else if (item == this.menuCalibrateOrange) {
-			Toast toast = Toast.makeText(this,
+			Toast.makeText(this,
 					"Touch to calibrate the ORANGE probability matrix",
-					Toast.LENGTH_LONG);
-			toast.show();
+					Toast.LENGTH_SHORT).show();
 			
 			colorTracking.trackColor(Color.ORANGE);
 			displayCross = true;
 		} else if (item == this.menuCalibrateWhite) {
-			Toast toast = Toast.makeText(this,
+			Toast.makeText(this,
 					"Touch to calibrate the WHITE probability matrix",
-					Toast.LENGTH_LONG);
-			toast.show();
+					Toast.LENGTH_SHORT).show();
 			
 			colorTracking.trackColor(Color.WHITE);
 			displayCross = true;
@@ -216,9 +210,11 @@ public class MainActivity extends Activity implements
 	public boolean onTouch(View v, MotionEvent event) {
 		switch (event.getAction()) {
 			case MotionEvent.ACTION_UP:
-				if(!colorTracking.getCalcProbMap())
+				if(!colorTracking.getCalcProbMap()) {
 					colorTracking.setCalcProbMap(true);
-	
+					displayCross = false;
+					Toast.makeText(this, "ColorTracking added", Toast.LENGTH_SHORT).show();
+				}
 				return true;
 			default:
 				return true;

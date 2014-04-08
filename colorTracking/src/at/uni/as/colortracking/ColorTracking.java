@@ -1,7 +1,8 @@
-package at.uni.as.colotracking;
+package at.uni.as.colortracking;
 
 import java.util.ArrayList;
 import java.util.List;
+
 import org.opencv.core.Core;
 import org.opencv.core.CvType;
 import org.opencv.core.Mat;
@@ -15,6 +16,10 @@ import org.opencv.imgproc.Imgproc;
 
 public class ColorTracking {
 	private static final int BLUR_FACTOR = 41; //needs to be odd
+	private static final float BACKPROJ_THRESH_MAX = 80;
+	private static final float BACKPROJ_THRESH_MIN =  0;
+	private static final float BACKPROJ_THRESH_STP =  1;
+	private static final float BACKPROJ_SCALE = 40; 
 	
 	private Mat homography = null;
 	private List<TrackedColor> trackedColors = null;
@@ -51,11 +56,22 @@ public class ColorTracking {
 			Point bottom = null;
 			
 			for(TrackedColor track : trackedColors) {
-				trckImg = backprojection(img, track.getProbMap());
-				trckImg = ColorTrackingUtil.getBiggestContour(segment(trckImg));
-				bottom = getBottom(trckImg);
+				trckImg = backprojection(img, track);
+				if(trckImg == null)
+					continue;
+				
+				//trckImg = ColorTrackingUtil.getBiggestContour(segment(trckImg));
+				//if(trckImg == null)
+					//continue;
+				
+				bottom = getBottom(segment(trckImg));
 				Core.circle(img, bottom, 5, new Scalar(100.0));
-				Core.putText(img, track.getColor() + ": " + getDistance(bottom, homography), bottom, Core.FONT_HERSHEY_COMPLEX, 1.0, new Scalar(100.0));
+				
+				if(homography != null)
+					Core.putText(img, track.getColor() + ": " + getDistance(bottom, homography), bottom, Core.FONT_HERSHEY_COMPLEX, 1.0, new Scalar(100.0));
+				else
+					Core.putText(img, track.getColor(), bottom, Core.FONT_HERSHEY_COMPLEX, 1.0, new Scalar(100.0));
+				
 				trckImg.release();
 			}
 		}
@@ -82,12 +98,11 @@ public class ColorTracking {
 
 		// Calc histogram of captured image.
 		Imgproc.calcHist(ColorTrackingUtil.convertRGB2RG(imgRGB), new MatOfInt(0, 1), new Mat(), histImg,
-				new MatOfInt(100, 100), new MatOfFloat(0.0f, 255.0f, 0.0f,
-						255.0f));
+				new MatOfInt(100, 100), new MatOfFloat(0.0f, 255.0f, 0.0f, 255.0f));
+		
 		// Calc histogram of foreground image.
 		Imgproc.calcHist(ColorTrackingUtil.convertRGB2RG(ColorTrackingUtil.getForegroundImage((int)x,(int)y, imgRGB)), new MatOfInt(0, 1), new Mat(), histFGImg,
-				new MatOfInt(100, 100), new MatOfFloat(0.0f, 255.0f, 0.0f,
-						255.0f));
+				new MatOfInt(100, 100), new MatOfFloat(0.0f, 255.0f, 0.0f, 255.0f));
 
 		// Calc probability := histFG/histI
 		Core.divide(histFGImg, histImg, mProbability);
@@ -108,21 +123,45 @@ public class ColorTracking {
 	 *            Probability matrix.
 	 * @return Back projection.
 	 */
-	private Mat backprojection(Mat mImg, Mat mProbability) {
-		Mat mBack = new Mat();
+	private Mat backprojection(Mat img, TrackedColor track) {
+		Mat backproj = new Mat();
+		Mat imgRGB = new Mat();
 
 		// Convert from RGBA format to RG.
-		Imgproc.cvtColor(mImg, mImg, Imgproc.COLOR_RGBA2RGB);
-		List<Mat> RGImgs = ColorTrackingUtil.convertRGB2RG(mImg);
+		Imgproc.cvtColor(img, imgRGB, Imgproc.COLOR_RGBA2RGB);
+		Imgproc.calcBackProject(ColorTrackingUtil.convertRGB2RG(imgRGB), new MatOfInt(0, 1), track.getProbMap(),
+				backproj, new MatOfFloat(0.0f, 255.0f, 0f, 255.0f), BACKPROJ_SCALE);
 
-		Imgproc.calcBackProject(RGImgs, new MatOfInt(0, 1), mProbability,
-				mBack, new MatOfFloat(0.0f, 255.0f, 0f, 255.0f), 25.0);
-		// Set threshold
-		Imgproc.threshold(mBack, mBack, 10, 255.0f, Imgproc.THRESH_BINARY);
+		if(track.getThreshold() < 0) {
+			Mat backprojClone = null;
+			double currThreshold = ColorTracking.BACKPROJ_THRESH_MAX;
+			Mat res = null;
+			
+			do {
+				if(res != null)
+					res.release();
+				res = new Mat();
+				backprojClone = backproj.clone();
+				
+				currThreshold -= ColorTracking.BACKPROJ_THRESH_STP;
+				Imgproc.threshold(backprojClone, res, currThreshold, 255.0f, Imgproc.THRESH_BINARY);
+				
+				backprojClone.release();
+			} while(ColorTrackingUtil.getContours(res).size() == 0 && currThreshold > ColorTracking.BACKPROJ_THRESH_MIN);
+			
+			backprojClone.release();
+			
+			if(currThreshold > ColorTracking.BACKPROJ_THRESH_MIN)
+				track.setThreshold(currThreshold);
+			else 
+				return null;
+		} 
+		
+		Imgproc.threshold(backproj, backproj, track.getThreshold(), 255.0f, Imgproc.THRESH_BINARY);
+		
 
-		RGImgs.clear();
-
-		return mBack;
+		imgRGB.release();
+		return backproj;
 	}
 
 	/**
@@ -141,7 +180,7 @@ public class ColorTracking {
 		
 		backprojection = new ArrayList<Mat>();
 		for(TrackedColor m : trackedColors) {
-			backprojection.add(backprojection(img, m.getProbMap()));
+			backprojection.add(backprojection(img, m));
 		}
 
 		return backprojection;
@@ -154,14 +193,14 @@ public class ColorTracking {
 	 *            Image.
 	 * @return Segmented image.
 	 */
-	private Mat segment(Mat mImg) {
-		Mat mCopy = mImg.clone();
+	private Mat segment(Mat img) {
+		Mat copy = img.clone();
 
-		Imgproc.erode(mCopy, mCopy, new Mat());
-		Imgproc.dilate(mCopy, mCopy, new Mat());
-		Imgproc.medianBlur(mCopy, mCopy, BLUR_FACTOR);
+		Imgproc.erode(copy, copy, new Mat());
+		Imgproc.dilate(copy, copy, new Mat());
+		Imgproc.medianBlur(copy, copy, BLUR_FACTOR);
 
-		return mCopy;
+		return copy;
 	}
 
 	/**

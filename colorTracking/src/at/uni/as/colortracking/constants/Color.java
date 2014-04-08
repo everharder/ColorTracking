@@ -1,4 +1,4 @@
-package at.uni.as.colotracking.constants;
+package at.uni.as.colortracking.constants;
 
 public class Color {
 	public static String RED = "red";
