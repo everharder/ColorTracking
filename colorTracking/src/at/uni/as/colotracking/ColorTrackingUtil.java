@@ -207,10 +207,10 @@ public class ColorTrackingUtil {
 		// spectrum
 		double minH = (hsvColor.val[0] >= mColorRadius.val[0]) ? hsvColor.val[0]
 				- mColorRadius.val[0]
-				: 0;
+				: 255 - hsvColor.val[0] - mColorRadius.val[0];
 		double maxH = (hsvColor.val[0] + mColorRadius.val[0] <= 255) ? hsvColor.val[0]
 				+ mColorRadius.val[0]
-				: 255;
+				: hsvColor.val[0] + mColorRadius.val[0] - 255;
 		mLowerBound.val[0] = minH;
 		mUpperBound.val[0] = maxH;
 		mLowerBound.val[1] = hsvColor.val[1] - mColorRadius.val[1];
