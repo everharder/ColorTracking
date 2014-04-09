@@ -134,8 +134,8 @@ public class ColorTracking {
 
 		if(track.getThreshold() < 0) {
 			Mat backprojClone = null;
-			double currThreshold = ColorTracking.BACKPROJ_THRESH_MAX;
 			Mat res = null;
+			double currThreshold = ColorTracking.BACKPROJ_THRESH_MIN;
 			
 			do {
 				if(res != null)
@@ -143,15 +143,13 @@ public class ColorTracking {
 				res = new Mat();
 				backprojClone = backproj.clone();
 				
-				currThreshold -= ColorTracking.BACKPROJ_THRESH_STP;
+				currThreshold += ColorTracking.BACKPROJ_THRESH_STP;
 				Imgproc.threshold(backprojClone, res, currThreshold, 255.0f, Imgproc.THRESH_BINARY);
 				
 				backprojClone.release();
-			} while(ColorTrackingUtil.getContours(res).size() == 0 && currThreshold > ColorTracking.BACKPROJ_THRESH_MIN);
+			} while(ColorTrackingUtil.getContours(res).size() == 0 && currThreshold < ColorTracking.BACKPROJ_THRESH_MAX);
 			
-			backprojClone.release();
-			
-			if(currThreshold > ColorTracking.BACKPROJ_THRESH_MIN)
+			if(currThreshold < ColorTracking.BACKPROJ_THRESH_MAX)
 				track.setThreshold(currThreshold);
 			else 
 				return null;
