@@ -60,10 +60,6 @@ public class ColorTracking {
 				if(trckImg == null)
 					continue;
 				
-				//trckImg = ColorTrackingUtil.getBiggestContour(segment(trckImg));
-				//if(trckImg == null)
-					//continue;
-				
 				bottom = getBottom(segment(trckImg));
 				Core.circle(img, bottom, 5, new Scalar(100.0));
 				
