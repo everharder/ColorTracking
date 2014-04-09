@@ -114,7 +114,7 @@ public class MainActivity extends Activity implements
 	public boolean onCreateOptionsMenu(Menu menu) {
 		Log.i(TAG, "called onCreateOptionsMenu");
 		
-		this.menuStartTracking = menu.add("Start Tracking");
+		this.menuStartTracking = menu.add("Toggle Tracking");
 		this.menuCalibrateRed = menu.add("Cal. RED");
 		this.menuCalibrateGreen = menu.add("Cal. GREEN");
 		this.menuCalibrateBlue = menu.add("Cal. BLUE");
@@ -132,8 +132,11 @@ public class MainActivity extends Activity implements
 
 		if (item == this.menuStartTracking) {
 			colorTracking.setTrackingActive(!colorTracking.getTrackingActive());
+			
+			if(!colorTracking.getTrackingActive())
+				colorTracking.resetTrackedObjects();
 		} else if(item == this.menuHomography) {
-			colorTracking.setCalcProbMap(true);
+			colorTracking.setCalcHomography(true);
 		} else if (item == this.menuCalibrateRed) {
 			Toast.makeText(this,
 					"Touch to calibrate the RED probability matrix",

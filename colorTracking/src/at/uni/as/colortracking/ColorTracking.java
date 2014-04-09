@@ -1,5 +1,6 @@
 package at.uni.as.colortracking;
 
+import java.text.DecimalFormat;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -16,10 +17,10 @@ import org.opencv.imgproc.Imgproc;
 
 public class ColorTracking {
 	private static final int BLUR_FACTOR = 41; //needs to be odd
-	private static final float BACKPROJ_THRESH_MAX = 80;
+	private static final float BACKPROJ_THRESH_MAX = 30;
 	private static final float BACKPROJ_THRESH_MIN =  0;
 	private static final float BACKPROJ_THRESH_STP =  1;
-	private static final float BACKPROJ_SCALE = 40; 
+	private static final float BACKPROJ_SCALE = 25; 
 	
 	private Mat homography = null;
 	private List<TrackedColor> trackedColors = null;
@@ -61,12 +62,16 @@ public class ColorTracking {
 					continue;
 				
 				bottom = getBottom(segment(trckImg));
-				Core.circle(img, bottom, 5, new Scalar(100.0));
+				if(bottom == null)
+					continue;
 				
+				Core.circle(img, bottom, 5, new Scalar(0.0));
+				
+				//TODO: remove hardcoded stuff
 				if(homography != null)
-					Core.putText(img, track.getColor() + ": " + getDistance(bottom, homography), bottom, Core.FONT_HERSHEY_COMPLEX, 1.0, new Scalar(100.0));
+					Core.putText(img, track.getColor() + ": " +  DecimalFormat.getIntegerInstance().format(getDistance(bottom, homography)) , new Point(bottom.x + 4, bottom.y), Core.FONT_HERSHEY_SIMPLEX, 0.75, new Scalar(50.0));
 				else
-					Core.putText(img, track.getColor(), bottom, Core.FONT_HERSHEY_COMPLEX, 1.0, new Scalar(100.0));
+					Core.putText(img, track.getColor(), new Point(bottom.x + 4, bottom.y), Core.FONT_HERSHEY_SIMPLEX, 0.75, new Scalar(50.0));
 				
 				trckImg.release();
 			}
@@ -74,7 +79,7 @@ public class ColorTracking {
 		
 		return img;
 	}
-	
+
 	/**
 	 * Calculates the probability matrix of an image.
 	 * 
@@ -131,7 +136,8 @@ public class ColorTracking {
 		if(track.getThreshold() < 0) {
 			Mat backprojClone = null;
 			Mat res = null;
-			double currThreshold = ColorTracking.BACKPROJ_THRESH_MIN;
+			MatOfPoint contour = null;
+			double currThreshold = ColorTracking.BACKPROJ_THRESH_MAX;
 			
 			do {
 				if(res != null)
@@ -139,13 +145,14 @@ public class ColorTracking {
 				res = new Mat();
 				backprojClone = backproj.clone();
 				
-				currThreshold += ColorTracking.BACKPROJ_THRESH_STP;
+				currThreshold -= ColorTracking.BACKPROJ_THRESH_STP;
 				Imgproc.threshold(backprojClone, res, currThreshold, 255.0f, Imgproc.THRESH_BINARY);
+				contour = ColorTrackingUtil.getBiggestContour(res);
 				
 				backprojClone.release();
-			} while(ColorTrackingUtil.getContours(res).size() == 0 && currThreshold < ColorTracking.BACKPROJ_THRESH_MAX);
+			} while(contour == null && currThreshold > ColorTracking.BACKPROJ_THRESH_MIN);
 			
-			if(currThreshold < ColorTracking.BACKPROJ_THRESH_MAX)
+			if(currThreshold > ColorTracking.BACKPROJ_THRESH_MIN)
 				track.setThreshold(currThreshold);
 			else 
 				return null;
@@ -281,5 +288,14 @@ public class ColorTracking {
 	
 	public void setCalcProbMap(boolean calcProbMap) {
 		this.calcProbMap = calcProbMap;
+	}
+	
+	
+	public boolean isCalcHomography() {
+		return calcHomography;
+	}
+
+	public void setCalcHomography(boolean calcHomography) {
+		this.calcHomography = calcHomography;
 	}
 }
