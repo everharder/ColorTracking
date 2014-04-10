@@ -17,6 +17,8 @@ import org.opencv.core.Size;
 import org.opencv.imgproc.Imgproc;
 
 public class ColorTrackingUtil {
+	public static int CONTOUR_SIZE_MIN = 400;
+	
 	/**
 	 * Returns the homography matrix of the image.
 	 * 
@@ -42,24 +44,24 @@ public class ColorTrackingUtil {
 				new Point(-24.0f, 309.0f), new Point(-24.0f, 321.0f),
 				new Point(-24.0f, 333.0f), new Point(-24.0f, 345.0f),
 				new Point(-24.0f, 357.0f), new Point(-24.0f, 369.0f),
-				new Point(-12.0, 309.0f), new Point(-12.0, 321.0f), new Point(
-						-12.0, 333.0f), new Point(-12.0, 345.0f), new Point(
-						-12.0, 357.0f), new Point(-12.0, 369.0f), new Point(
-						0.0f, 309.0f), new Point(0.0f, 321.0f), new Point(0.0f,
-						333.0f), new Point(0.0f, 345.0f), new Point(0.0f,
-						357.0f), new Point(0.0f, 369.0f), new Point(12.0,
-						309.0f), new Point(12.0, 321.0f), new Point(12.0,
-						333.0f), new Point(12.0, 345.0f), new Point(12.0,
-						357.0f), new Point(12.0, 369.0f), new Point(24.0f,
-						309.0f), new Point(24.0f, 321.0f), new Point(24.0f,
-						333.0f), new Point(24.0f, 345.0f), new Point(24.0f,
-						357.0f), new Point(24.0f, 369.0f), new Point(36.0f,
-						309.0f), new Point(36.0f, 321.0f), new Point(36.0f,
-						333.0f), new Point(36.0f, 345.0f), new Point(36.0f,
-						357.0f), new Point(36.0f, 369.0f), new Point(48.0f,
-						309.0f), new Point(48.0f, 321.0f), new Point(48.0f,
-						333.0f), new Point(48.0f, 345.0f), new Point(48.0f,
-						357.0f), new Point(48.0f, 369.0f));
+				new Point(-12.0f, 309.0f), new Point(-12.0f, 321.0f),
+				new Point(-12.0f, 333.0f), new Point(-12.0f, 345.0f), 
+				new Point(-12.0f, 357.0f), new Point(-12.0f, 369.0f), 
+				new Point(	0.0f, 309.0f), new Point(  0.0f, 321.0f), 
+				new Point(  0.0f, 333.0f), new Point(  0.0f, 345.0f), 
+				new Point(  0.0f, 357.0f), new Point(  0.0f, 369.0f), 
+				new Point( 12.0f, 309.0f), new Point( 12.0f, 321.0f), 
+				new Point( 12.0f, 333.0f), new Point( 12.0f, 345.0f), 
+				new Point( 12.0f, 357.0f), new Point( 12.0f, 369.0f), 
+				new Point( 24.0f, 309.0f), new Point( 24.0f, 321.0f), 
+				new Point( 24.0f, 333.0f), new Point( 24.0f, 345.0f), 
+				new Point( 24.0f, 357.0f), new Point( 24.0f, 369.0f), 
+				new Point( 36.0f, 309.0f), new Point( 36.0f, 321.0f), 
+				new Point( 36.0f, 333.0f), new Point( 36.0f, 345.0f), 
+				new Point( 36.0f, 357.0f), new Point( 36.0f, 369.0f), 
+				new Point( 48.0f, 309.0f), new Point( 48.0f, 321.0f), 
+				new Point( 48.0f, 333.0f), new Point( 48.0f, 345.0f), 
+				new Point( 48.0f, 357.0f), new Point( 48.0f, 369.0f));
 
 		Imgproc.cvtColor(mRgba, gray, Imgproc.COLOR_RGBA2GRAY);
 		// getting inner corners of chessboard
@@ -68,8 +70,6 @@ public class ColorTrackingUtil {
 				mCorners);
 
 		if (mPatternWasFound) {
-			// Calib3d.drawChessboardCorners(mRgba, mPatternSize, mCorners,
-			// mPatternWasFound);//for testing
 			Mat cornersClone = mCorners.clone();
 			mCornersBuffer.add(cornersClone);
 			homography = Calib3d.findHomography(mCorners, RealWorldC);
@@ -108,28 +108,20 @@ public class ColorTrackingUtil {
 		Mat g = new MatOfFloat();
 		Mat b = new MatOfFloat();
 
-		Core.divide(chR, new Scalar(255.0), r, CvType.CV_64F);// dividing it at
-																// first in
-																// order not to
-																// lose data
-		Core.divide(chG, new Scalar(255.0), g, CvType.CV_64F);// and to have
-																// scaled data
-																// to values
-																// 0-255
+		Core.divide(chR, new Scalar(255.0), r, CvType.CV_64F);
+		Core.divide(chG, new Scalar(255.0), g, CvType.CV_64F);
 		Core.divide(chB, new Scalar(255.0), b, CvType.CV_64F);
 
 		Mat mSum = new MatOfFloat();
-
-		Core.add(r, g, mSum); // making sum
+		Core.add(r, g, mSum);
 		Core.add(mSum, b, mSum);
 
-		Core.divide(chR, mSum, chR, CvType.CV_64F);// getting RG chromacity
+		Core.divide(chR, mSum, chR, CvType.CV_64F);
 		Core.divide(chG, mSum, chG, CvType.CV_64F);
 		Core.divide(chB, mSum, chB, CvType.CV_64F);
 
 		ArrayList<Mat> mv = new ArrayList<Mat>();
-
-		mv.add(0, (Mat) chR); // mv contains rg values of pictures
+		mv.add(0, (Mat) chR);
 		mv.add(1, (Mat) chG);
 
 		return mv;
@@ -143,14 +135,12 @@ public class ColorTrackingUtil {
 	 * @return List of biggest contour(s).
 	 */
 	public static MatOfPoint getBiggestContour(Mat img) {
-		// This list contains all contours in the processed image.
 		List<MatOfPoint> contours = getContours(img);
 
 		if (contours.size() == 0)
 			return null;
 
-		// TODO: replace hardcoded stuff
-		MatOfPoint biggest = getBiggestContour(contours, 400);
+		MatOfPoint biggest = getBiggestContour(contours, CONTOUR_SIZE_MIN);
 
 		// release memory
 		for (MatOfPoint c : contours)
@@ -172,7 +162,6 @@ public class ColorTrackingUtil {
 			if (area < minSize)
 				continue;
 
-			// Clear only contours which are 'var'-times greater than maxArea.
 			if (area > maxArea * (1 + var)) {
 				biggest = c;
 				maxArea = area;
@@ -212,10 +201,10 @@ public class ColorTrackingUtil {
 		
 		touchedRect.x = (x > 4) ? x - 4 : 0;
 		touchedRect.y = (y > 4) ? y - 4 : 0;
-		touchedRect.width = (x + 4 < cols) ? x + 4 - touchedRect.x : cols
-				- touchedRect.x;
-		touchedRect.height = (y + 4 < rows) ? y + 4 - touchedRect.y : rows
-				- touchedRect.y;
+		touchedRect.width = (x + 4 < cols) 	? x + 4 - touchedRect.x 
+											: cols - touchedRect.x;
+		touchedRect.height = (y + 4 < rows)	? y + 4 - touchedRect.y  
+											: rows - touchedRect.y;
 		
 		Mat touchedRegionRgba = image.submat(touchedRect);
 		Mat touchedRegionHsv = new Mat();
@@ -235,12 +224,11 @@ public class ColorTrackingUtil {
 		Scalar mUpperBound = new Scalar(0);
 		
 		// spectrum
-		double minH = (hsvColor.val[0] >= mColorRadius.val[0]) ? hsvColor.val[0]
-				- mColorRadius.val[0]
-				: 0;
-		double maxH = (hsvColor.val[0] + mColorRadius.val[0] <= 255) ? hsvColor.val[0]
-				+ mColorRadius.val[0]
-				: 255;
+		double minH = (hsvColor.val[0] - mColorRadius.val[0] > 0) 	? hsvColor.val[0] - mColorRadius.val[0]
+																	: 0;
+		double maxH = (hsvColor.val[0] + mColorRadius.val[0] < 255) ? hsvColor.val[0] + mColorRadius.val[0]
+																	: 255;
+		
 		mLowerBound.val[0] = minH;
 		mUpperBound.val[0] = maxH;
 		mLowerBound.val[1] = hsvColor.val[1] - mColorRadius.val[1];
@@ -256,8 +244,8 @@ public class ColorTrackingUtil {
 			spectrumHsv.put(0, j, tmp);
 		}
 		Mat mSpectrum = new Mat();
-		Imgproc.cvtColor(spectrumHsv, mSpectrum, Imgproc.COLOR_HSV2RGB_FULL, 4);
-		Imgproc.resize(mSpectrum, mSpectrum, new Size(200, 64));
+		//Imgproc.cvtColor(spectrumHsv, mSpectrum, Imgproc.COLOR_HSV2RGB_FULL, 4);
+		//Imgproc.resize(mSpectrum, mSpectrum, new Size(200, 64));
 
 		Mat mPyrDownMat = new Mat();
 		Mat mHsvMat = new Mat();
@@ -296,7 +284,7 @@ public class ColorTrackingUtil {
 			}
 		}
 		Mat cli = new Mat();
-		cli = image.submat(Imgproc.boundingRect(contours.get(0)));
+		cli = image.submat(Imgproc.boundingRect(mContours.get(0)));
 		
 		// releasing matrix
 		touchedRegionRgba.release();

@@ -50,6 +50,7 @@ public class MainActivity extends Activity implements
 	
 	// flags
 	private boolean displayCross = false;
+	private boolean calibrationEnabled = true;
 
 	private BaseLoaderCallback mLoaderCallback = new BaseLoaderCallback(this) {
 		@Override
@@ -135,6 +136,13 @@ public class MainActivity extends Activity implements
 			
 			if(!colorTracking.getTrackingActive())
 				colorTracking.resetTrackedObjects();
+			
+			setCalibrationMenuEnabled(!calibrationEnabled);
+			
+			if(colorTracking.getTrackingActive())
+				Toast.makeText(this, "started tracking", Toast.LENGTH_SHORT).show();
+			else
+				Toast.makeText(this, "stopped tracking", Toast.LENGTH_SHORT).show();
 		} else if(item == this.menuHomography) {
 			colorTracking.setCalcHomography(true);
 		} else if (item == this.menuCalibrateRed) {
@@ -144,6 +152,7 @@ public class MainActivity extends Activity implements
 			
 			colorTracking.trackColor(Color.RED);
 			displayCross = true;
+			menuCalibrateRed.setEnabled(false);
 		} else if (item == this.menuCalibrateGreen) {
 			Toast.makeText(this,
 					"Touch to calibrate the GREEN probability matrix",
@@ -151,6 +160,7 @@ public class MainActivity extends Activity implements
 			
 			colorTracking.trackColor(Color.GREEN);
 			displayCross = true;
+			menuCalibrateGreen.setEnabled(false);
 		} else if (item == this.menuCalibrateBlue) {
 			Toast.makeText(this,
 					"Touch to calibrate the BLUE probability matrix",
@@ -158,6 +168,7 @@ public class MainActivity extends Activity implements
 			
 			colorTracking.trackColor(Color.BLUE);
 			displayCross = true;
+			menuCalibrateBlue.setEnabled(false);
 		} else if (item == this.menuCalibrateYellow) {
 			Toast.makeText(this,
 					"Touch to calibrate the YELLOW probability matrix",
@@ -172,6 +183,7 @@ public class MainActivity extends Activity implements
 			
 			colorTracking.trackColor(Color.ORANGE);
 			displayCross = true;
+			menuCalibrateOrange.setEnabled(false);
 		} else if (item == this.menuCalibrateWhite) {
 			Toast.makeText(this,
 					"Touch to calibrate the WHITE probability matrix",
@@ -179,6 +191,7 @@ public class MainActivity extends Activity implements
 			
 			colorTracking.trackColor(Color.WHITE);
 			displayCross = true;
+			menuCalibrateWhite.setEnabled(false);
 		} 
 		
 		return true;
@@ -222,5 +235,17 @@ public class MainActivity extends Activity implements
 			default:
 				return true;
 		}
+	}
+	
+	public void setCalibrationMenuEnabled(boolean enabled) {
+		menuCalibrateRed.setEnabled(enabled);
+		menuCalibrateBlue.setEnabled(enabled);
+		menuCalibrateGreen.setEnabled(enabled);
+		menuCalibrateYellow.setEnabled(enabled);
+		menuCalibrateOrange.setEnabled(enabled);
+		menuCalibrateWhite.setEnabled(enabled);
+		menuHomography.setEnabled(enabled);
+		
+		calibrationEnabled = enabled;
 	}
 }
