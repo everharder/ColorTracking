@@ -17,8 +17,12 @@ import org.opencv.core.Size;
 import org.opencv.imgproc.Imgproc;
 
 public class ColorTrackingUtil {
+	private static final int BLUR_FACTOR = 41; // needs to be odd
 	public static int CONTOUR_SIZE_MIN = 400;
-	
+	public static int FOREGROUND_TOLERANCE_H = 25;
+	public static int FOREGROUND_TOLERANCE_S = 50;
+	public static int FOREGROUND_TOLERANCE_V = 50;
+
 	/**
 	 * Returns the homography matrix of the image.
 	 * 
@@ -45,23 +49,23 @@ public class ColorTrackingUtil {
 				new Point(-24.0f, 333.0f), new Point(-24.0f, 345.0f),
 				new Point(-24.0f, 357.0f), new Point(-24.0f, 369.0f),
 				new Point(-12.0f, 309.0f), new Point(-12.0f, 321.0f),
-				new Point(-12.0f, 333.0f), new Point(-12.0f, 345.0f), 
-				new Point(-12.0f, 357.0f), new Point(-12.0f, 369.0f), 
-				new Point(	0.0f, 309.0f), new Point(  0.0f, 321.0f), 
-				new Point(  0.0f, 333.0f), new Point(  0.0f, 345.0f), 
-				new Point(  0.0f, 357.0f), new Point(  0.0f, 369.0f), 
-				new Point( 12.0f, 309.0f), new Point( 12.0f, 321.0f), 
-				new Point( 12.0f, 333.0f), new Point( 12.0f, 345.0f), 
-				new Point( 12.0f, 357.0f), new Point( 12.0f, 369.0f), 
-				new Point( 24.0f, 309.0f), new Point( 24.0f, 321.0f), 
-				new Point( 24.0f, 333.0f), new Point( 24.0f, 345.0f), 
-				new Point( 24.0f, 357.0f), new Point( 24.0f, 369.0f), 
-				new Point( 36.0f, 309.0f), new Point( 36.0f, 321.0f), 
-				new Point( 36.0f, 333.0f), new Point( 36.0f, 345.0f), 
-				new Point( 36.0f, 357.0f), new Point( 36.0f, 369.0f), 
-				new Point( 48.0f, 309.0f), new Point( 48.0f, 321.0f), 
-				new Point( 48.0f, 333.0f), new Point( 48.0f, 345.0f), 
-				new Point( 48.0f, 357.0f), new Point( 48.0f, 369.0f));
+				new Point(-12.0f, 333.0f), new Point(-12.0f, 345.0f),
+				new Point(-12.0f, 357.0f), new Point(-12.0f, 369.0f),
+				new Point(0.0f, 309.0f), new Point(0.0f, 321.0f), new Point(
+						0.0f, 333.0f), new Point(0.0f, 345.0f), new Point(0.0f,
+						357.0f), new Point(0.0f, 369.0f), new Point(12.0f,
+						309.0f), new Point(12.0f, 321.0f), new Point(12.0f,
+						333.0f), new Point(12.0f, 345.0f), new Point(12.0f,
+						357.0f), new Point(12.0f, 369.0f), new Point(24.0f,
+						309.0f), new Point(24.0f, 321.0f), new Point(24.0f,
+						333.0f), new Point(24.0f, 345.0f), new Point(24.0f,
+						357.0f), new Point(24.0f, 369.0f), new Point(36.0f,
+						309.0f), new Point(36.0f, 321.0f), new Point(36.0f,
+						333.0f), new Point(36.0f, 345.0f), new Point(36.0f,
+						357.0f), new Point(36.0f, 369.0f), new Point(48.0f,
+						309.0f), new Point(48.0f, 321.0f), new Point(48.0f,
+						333.0f), new Point(48.0f, 345.0f), new Point(48.0f,
+						357.0f), new Point(48.0f, 369.0f));
 
 		Imgproc.cvtColor(mRgba, gray, Imgproc.COLOR_RGBA2GRAY);
 		// getting inner corners of chessboard
@@ -197,55 +201,32 @@ public class ColorTrackingUtil {
 	public static Mat getForegroundImage(int x, int y, Mat image) {
 		int cols = image.cols();
 		int rows = image.rows();
-		Rect touchedRect = new Rect();
 		
+		// sample rectangle
+		Rect touchedRect = new Rect();
 		touchedRect.x = (x > 4) ? x - 4 : 0;
 		touchedRect.y = (y > 4) ? y - 4 : 0;
-		touchedRect.width = (x + 4 < cols) 	? x + 4 - touchedRect.x 
-											: cols - touchedRect.x;
-		touchedRect.height = (y + 4 < rows)	? y + 4 - touchedRect.y  
-											: rows - touchedRect.y;
-		
+		touchedRect.width  = (x + 4 < cols) ? x + 4 - touchedRect.x : cols - touchedRect.x;
+		touchedRect.height = (y + 4 < rows) ? y + 4 - touchedRect.y : rows - touchedRect.y;
 		Mat touchedRegionRgba = image.submat(touchedRect);
+		
 		Mat touchedRegionHsv = new Mat();
 		Mat mEmpty = new Mat();
-		
-		Imgproc.cvtColor(touchedRegionRgba, touchedRegionHsv,
-				Imgproc.COLOR_RGB2HSV_FULL);
+		Imgproc.cvtColor(touchedRegionRgba, touchedRegionHsv, Imgproc.COLOR_RGB2HSV_FULL);
 		
 		// Calculate average color of touched region
-		Scalar hsvColor;
-		hsvColor = Core.sumElems(touchedRegionHsv);
+		Scalar hsvColor = Core.sumElems(touchedRegionHsv);;
 		int pointCount = touchedRect.width * touchedRect.height;
 		for (int i = 0; i < hsvColor.val.length; i++)
 			hsvColor.val[i] /= pointCount;
-		Scalar mColorRadius = new Scalar(25, 50, 50, 0);
-		Scalar mLowerBound = new Scalar(0);
-		Scalar mUpperBound = new Scalar(0);
 		
-		// spectrum
+		//tolerances
+		Scalar mColorRadius = new Scalar(FOREGROUND_TOLERANCE_H, FOREGROUND_TOLERANCE_S, FOREGROUND_TOLERANCE_V, 0);
+		
 		double minH = (hsvColor.val[0] - mColorRadius.val[0] > 0) 	? hsvColor.val[0] - mColorRadius.val[0]
-																	: 0;
+																	: 255 - hsvColor.val[0] - mColorRadius.val[0];
 		double maxH = (hsvColor.val[0] + mColorRadius.val[0] < 255) ? hsvColor.val[0] + mColorRadius.val[0]
-																	: 255;
-		
-		mLowerBound.val[0] = minH;
-		mUpperBound.val[0] = maxH;
-		mLowerBound.val[1] = hsvColor.val[1] - mColorRadius.val[1];
-		mUpperBound.val[1] = hsvColor.val[1] + mColorRadius.val[1];
-		mLowerBound.val[2] = hsvColor.val[2] - mColorRadius.val[2];
-		mUpperBound.val[2] = hsvColor.val[2] + mColorRadius.val[2];
-		mLowerBound.val[3] = 0;
-		mUpperBound.val[3] = 255;
-		
-		Mat spectrumHsv = new Mat(1, (int) (maxH - minH), CvType.CV_8UC3);
-		for (int j = 0; j < maxH - minH; j++) {
-			byte[] tmp = { (byte) (minH + j), (byte) 255, (byte) 255 };
-			spectrumHsv.put(0, j, tmp);
-		}
-		Mat mSpectrum = new Mat();
-		//Imgproc.cvtColor(spectrumHsv, mSpectrum, Imgproc.COLOR_HSV2RGB_FULL, 4);
-		//Imgproc.resize(mSpectrum, mSpectrum, new Size(200, 64));
+																	: hsvColor.val[0] + mColorRadius.val[0] - 255;
 
 		Mat mPyrDownMat = new Mat();
 		Mat mHsvMat = new Mat();
@@ -259,50 +240,103 @@ public class ColorTrackingUtil {
 		Imgproc.pyrDown(image, mPyrDownMat);
 		Imgproc.pyrDown(mPyrDownMat, mPyrDownMat);
 		Imgproc.cvtColor(mPyrDownMat, mHsvMat, Imgproc.COLOR_RGB2HSV_FULL);
-		Core.inRange(mHsvMat, mLowerBound, mUpperBound, mMask);
-		Imgproc.dilate(mMask, mDilatedMask, mEmpty);
+		
+		// get binary image from ranges
+		Scalar mLowerBound = new Scalar(0);
+		Scalar mUpperBound = new Scalar(0);
+		mLowerBound.val[1] = hsvColor.val[1] - mColorRadius.val[1];
+		mUpperBound.val[1] = hsvColor.val[1] + mColorRadius.val[1];
+		mLowerBound.val[2] = hsvColor.val[2] - mColorRadius.val[2];
+		mUpperBound.val[2] = hsvColor.val[2] + mColorRadius.val[2];
+		mLowerBound.val[3] = 0;
+		mUpperBound.val[3] = 255;
+		
+		if(minH < maxH) {
+			mLowerBound.val[0] = minH;
+			mUpperBound.val[0] = maxH;
+			Core.inRange(mHsvMat, mLowerBound, mUpperBound, mMask);
+		} else {
+			Mat min = new Mat();
+			Mat max = new Mat();
+
+			mLowerBound.val[0] = minH;
+			mUpperBound.val[0] = 255;
+			Core.inRange(mHsvMat, mLowerBound, mUpperBound, min);
+			
+			mLowerBound.val[0] = 0;
+			mUpperBound.val[0] = maxH;
+			Core.inRange(mHsvMat, mLowerBound, mUpperBound, max);
+			
+			Core.bitwise_or(min, max, mMask);
+		}
+		mDilatedMask = ColorTrackingUtil.segment(mMask);
 
 		// finding contours in image
 		List<MatOfPoint> contours = new ArrayList<MatOfPoint>();
-		Imgproc.findContours(mDilatedMask, contours, mHierarchy,Imgproc.RETR_EXTERNAL, Imgproc.CHAIN_APPROX_SIMPLE);
+		Imgproc.findContours(mDilatedMask, contours, mHierarchy,Imgproc.RETR_EXTERNAL, Imgproc.CHAIN_APPROX_SIMPLE);	
 
 		// Find max contour area
 		double maxArea = 0;
-		for(MatOfPoint c : contours){
-			double area = Imgproc.contourArea(c);
-			if (area > maxArea)
-				maxArea = area;
-		}
-		
-		// Filter contours by area and resize to fit the original image size
-		List<MatOfPoint> mContours = new ArrayList<MatOfPoint>();
-		double mMinContourArea = 0.1;
+		MatOfPoint biggest = null;
 		for(MatOfPoint c : contours) {
-			if (Imgproc.contourArea(c) > mMinContourArea * maxArea) {
+			double area = Imgproc.contourArea(c);
+			if (area > maxArea) {
+				maxArea = area;
 				Core.multiply(c, new Scalar(4, 4), c);
-				mContours.add(c);
+				biggest = c;
 			}
 		}
-		Mat cli = new Mat();
-		cli = image.submat(Imgproc.boundingRect(mContours.get(0)));
+
+		Mat cli = null;	
+		if(biggest != null) 
+			cli = image.submat(Imgproc.boundingRect(biggest));
 		
-		// releasing matrix
+		// releasing memory
 		touchedRegionRgba.release();
 		touchedRegionHsv.release();
-		spectrumHsv.release();
 		mPyrDownMat.release();
 		mHsvMat.release();
 		mMask.release();
-		mSpectrum.release();
 		mDilatedMask.release();
 		mHierarchy.release();
 		contours.clear();
-		mContours.clear();
 		wrapper.release();
 		contour.release();
 		mEmpty.release();
 
 		return cli;
+	}
+	
+	/**
+	 * Segments the image with eroding, dilating and smoothing.
+	 * 
+	 * @param mImg
+	 *            Image.
+	 * @return Segmented image.
+	 */
+	public static Mat segment(Mat img) {
+		Mat copy = img.clone();
 
+		Imgproc.erode(copy, copy, new Mat());
+		Imgproc.dilate(copy, copy, new Mat());
+		Imgproc.medianBlur(copy, copy, BLUR_FACTOR);
+
+		return copy;
+	}
+
+	/**
+	 * Segments all images in the list with eroding, dilating and smoothing.
+	 * 
+	 * @param imgs
+	 *            List of images.
+	 * @return List of segmented images.
+	 */
+	public static List<Mat> segment(List<Mat> imgs) {
+		List<Mat> segments = new ArrayList<Mat>();
+
+		for (Mat m : imgs)
+			segments.add(segment(m));
+
+		return segments;
 	}
 }

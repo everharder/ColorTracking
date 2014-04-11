@@ -12,6 +12,7 @@ import org.opencv.core.Point;
 import org.opencv.core.Scalar;
 
 import android.app.Activity;
+import android.content.res.Resources.NotFoundException;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.Menu;
@@ -132,6 +133,11 @@ public class MainActivity extends Activity implements
 		Log.i(TAG, "called onOptionsItemSelected; selected item: " + item);
 
 		if (item == this.menuStartTracking) {
+			if(colorTracking.getTrackedColorCount() == 0) {
+				Toast.makeText(this, "no colors tracked", Toast.LENGTH_SHORT).show();
+				return true;
+			}			
+			
 			colorTracking.setTrackingActive(!colorTracking.getTrackingActive());
 			
 			if(!colorTracking.getTrackingActive())
@@ -206,9 +212,15 @@ public class MainActivity extends Activity implements
 	}
 
 	public Mat onCameraFrame(CvCameraViewFrame inputFrame) {
-		Mat image = colorTracking.processImage(inputFrame.rgba(), POS_TRACK_X, POS_TRACK_Y);
+		Mat image = null;
 		
-		if(colorTracking == null)
+		try {
+			image = colorTracking.processImage(inputFrame.rgba(), (int)POS_TRACK_X, (int)POS_TRACK_Y);
+		} catch (NotFoundException e) {
+			Toast.makeText(this, "could not calc ProbMap", Toast.LENGTH_SHORT).show();
+		}
+		
+		if(image == null)
 			return inputFrame.rgba();
 
 		// Draw cross for color calibration.
@@ -226,6 +238,9 @@ public class MainActivity extends Activity implements
 	public boolean onTouch(View v, MotionEvent event) {
 		switch (event.getAction()) {
 			case MotionEvent.ACTION_UP:
+				if(!colorTracking.isWaitingForProbMap())
+					return true;
+				
 				if(!colorTracking.getCalcProbMap()) {
 					colorTracking.setCalcProbMap(true);
 					displayCross = false;
