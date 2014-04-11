@@ -233,8 +233,6 @@ public class ColorTrackingUtil {
 		Mat mMask = new Mat();
 		Mat mDilatedMask = new Mat();
 		Mat mHierarchy = new Mat();
-		MatOfPoint wrapper = new MatOfPoint();
-		MatOfPoint contour = new MatOfPoint();
 
 		// image processing
 		Imgproc.pyrDown(image, mPyrDownMat);
@@ -292,6 +290,8 @@ public class ColorTrackingUtil {
 			cli = image.submat(Imgproc.boundingRect(biggest));
 		
 		// releasing memory
+		for(MatOfPoint c : contours)
+			c.release();
 		touchedRegionRgba.release();
 		touchedRegionHsv.release();
 		mPyrDownMat.release();
@@ -299,10 +299,9 @@ public class ColorTrackingUtil {
 		mMask.release();
 		mDilatedMask.release();
 		mHierarchy.release();
-		contours.clear();
-		wrapper.release();
-		contour.release();
 		mEmpty.release();
+		
+		
 
 		return cli;
 	}
