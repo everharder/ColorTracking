@@ -300,8 +300,6 @@ public class ColorTrackingUtil {
 		mDilatedMask.release();
 		mHierarchy.release();
 		mEmpty.release();
-		
-		
 
 		return cli;
 	}

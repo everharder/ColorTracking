@@ -12,6 +12,7 @@ import org.opencv.core.Point;
 import org.opencv.core.Scalar;
 
 import android.app.Activity;
+import android.content.Intent;
 import android.content.res.Resources.NotFoundException;
 import android.os.Bundle;
 import android.util.Log;
@@ -89,7 +90,10 @@ public class MainActivity extends Activity implements
 		mOpenCvCameraView.setCvCameraViewListener(this);
 		mOpenCvCameraView.setOnTouchListener(this);
 		
-		colorTracking = new ColorTracking();
+
+		Intent i = new Intent( getApplicationContext(), RobotActivity.class );
+		startActivity( i );
+		finish();
 	}
 
 	@Override
