@@ -23,6 +23,7 @@ public class ColorTracking {
 	private static final float BACKPROJ_THRESH_MIN = 1;
 	private static final float BACKPROJ_THRESH_STP = 1;
 	private static final float BACKPROJ_SCALE = 15;
+	private static final float SEGMENT_AREA_MIN = 200;
 
 	private Mat homography = null;
 	private List<TrackedColor> trackedColors = null;
@@ -58,7 +59,7 @@ public class ColorTracking {
 
 		if (trackingActive) {
 			Mat trckImg = null;
-			Point bottom = null;
+			List<Point> bottom = null;
 
 			for (TrackedColor track : trackedColors) {
 				trckImg = backprojection(img, track);
@@ -66,26 +67,30 @@ public class ColorTracking {
 					continue;
 
 				bottom = getBottom(ColorTrackingUtil.segment(trckImg));
-				if (bottom == null)
+				if (bottom == null || bottom.size() == 0)
 					continue;
 
-				Core.circle(img, bottom, 5, new Scalar(0.0));
-
-				// TODO: remove hardcoded stuff
-				if (homography != null)
-					Core.putText(
-							img,
-							track.getColor()
-									+ ": "
-									+ DecimalFormat.getIntegerInstance()
-											.format(getDistance(bottom,
-													homography)), new Point(
-									bottom.x + 4, bottom.y),
-							Core.FONT_HERSHEY_SIMPLEX, 0.75, new Scalar(50.0));
-				else
-					Core.putText(img, track.getColor(), new Point(bottom.x + 4,
-							bottom.y), Core.FONT_HERSHEY_SIMPLEX, 0.75,
-							new Scalar(50.0));
+				track.getDist().clear();
+				for(Point p : bottom) {
+					Core.circle(img, p, 5, new Scalar(0.0));
+		
+					// TODO: remove hardcoded stuff
+					if (homography != null) {
+						track.addDist(getDistance(p,homography) / 10.0);
+						Core.putText(
+								img,
+								track.getColor()
+										+ ": "
+										+ DecimalFormat.getIntegerInstance()
+												.format(track.getDist()), new Point(
+										p.x + 4, p.y),
+								Core.FONT_HERSHEY_SIMPLEX, 0.75, new Scalar(50.0));
+					} else {
+						Core.putText(img, track.getColor(), new Point(p.x + 4,
+								p.y), Core.FONT_HERSHEY_SIMPLEX, 0.75,
+								new Scalar(50.0));
+					}
+				}
 
 				trckImg.release();
 			}
@@ -217,16 +222,19 @@ public class ColorTracking {
 	 *            List of image objects.
 	 * @return List of bottom points.
 	 */
-	public Point getBottom(Mat img) {
-		Point bottom = null;
+	public List<Point> getBottom(Mat img) {
+		List<Point> bottom = new ArrayList<Point>();
 
-		MatOfPoint contour = ColorTrackingUtil.getBiggestContour(img);
+		List<MatOfPoint> contour = ColorTrackingUtil.getContours(img);
 
 		if (contour == null)
 			return null;
-
-		Rect rec = Imgproc.boundingRect(contour);
-		bottom = new Point(rec.x + rec.width, rec.y + rec.height / 2);
+		
+		for(MatOfPoint p : contour) {
+			Rect rec = Imgproc.boundingRect(p);
+			if(rec.area() > SEGMENT_AREA_MIN)
+				bottom.add(new Point(rec.x + rec.width, rec.y + rec.height / 2));
+		}
 
 		return bottom;
 	}
@@ -294,5 +302,9 @@ public class ColorTracking {
 	
 	public boolean isWaitingForProbMap() {
 		return newTracking != null;
+	}
+	
+	public List<TrackedColor> getTrackedColors() {
+		return this.trackedColors;
 	}
 }

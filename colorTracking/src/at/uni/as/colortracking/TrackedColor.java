@@ -1,11 +1,23 @@
 package at.uni.as.colortracking;
 
+import java.util.ArrayList;
+import java.util.List;
+
 import org.opencv.core.Mat;
 
 public class TrackedColor {
 	private String color = null;
 	private Mat probMap = null;
 	private double threshold = -1;
+	private List<Double> dist = new ArrayList<Double>();
+
+	public List<Double> getDist() {
+		return dist;
+	}
+
+	public void addDist(double dist) {
+		this.dist.add(dist);
+	}
 
 	public TrackedColor(String color) {
 		this.color = color;

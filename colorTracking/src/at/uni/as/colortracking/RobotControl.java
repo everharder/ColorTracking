@@ -1,36 +1,21 @@
 package at.uni.as.colortracking;
 
 import jp.ksksue.driver.serial.FTDriver;
-import android.app.Activity;
-import android.hardware.usb.UsbManager;
-import android.os.Bundle;
-import android.view.Menu;
-import android.view.MenuItem;
 import android.view.View;
 import android.widget.TextView;
 
-public class RobotActivity extends Activity {
-
+public class RobotControl{
 	@SuppressWarnings("unused")
 	private String TAG = "iRobot";
 	private TextView textLog;
 	private FTDriver com;
 
-	@Override
-	protected void onCreate(Bundle savedInstanceState) {
-		super.onCreate(savedInstanceState);
-		setContentView(R.layout.activity_robot);
-
-		textLog = (TextView) findViewById(R.id.textLog);
-
-		com = new FTDriver((UsbManager) getSystemService(USB_SERVICE));
-
+	public RobotControl(FTDriver com) {
+		this.com = com;
 		connect();
 	}
 
 	public void connect() {
-		// TODO implement permission request
-
 		if (com.begin(9600)) {
 			textLog.append("connected\n");
 		} else {
@@ -99,28 +84,6 @@ public class RobotActivity extends Activity {
 	public void logText(String text) {
 		if (text.length() > 0) {
 			textLog.append("[" + text.length() + "] " + text + "\n");
-		}
-	}
-
-	@Override
-	public boolean onCreateOptionsMenu(Menu menu) {
-		getMenuInflater().inflate(R.menu.main, menu);
-		return true;
-	}
-
-	@Override
-	public boolean onOptionsItemSelected(MenuItem item) {
-		switch (item.getItemId()) {
-		case R.id.connect:
-			connect();
-			return true;
-
-		case R.id.disconnect:
-			disconnect();
-			return true;
-
-		default:
-			return super.onOptionsItemSelected(item);
 		}
 	}
 

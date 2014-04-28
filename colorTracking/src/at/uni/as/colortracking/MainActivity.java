@@ -1,5 +1,7 @@
 package at.uni.as.colortracking;
 
+import jp.ksksue.driver.serial.FTDriver;
+
 import org.opencv.android.BaseLoaderCallback;
 import org.opencv.android.CameraBridgeViewBase;
 import org.opencv.android.CameraBridgeViewBase.CvCameraViewFrame;
@@ -12,8 +14,8 @@ import org.opencv.core.Point;
 import org.opencv.core.Scalar;
 
 import android.app.Activity;
-import android.content.Intent;
 import android.content.res.Resources.NotFoundException;
+import android.hardware.usb.UsbManager;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.Menu;
@@ -38,6 +40,8 @@ public class MainActivity extends Activity implements
 	private static final float POS_TRACK_Y = RES_DISP_W / 2;
 
 	private CameraBridgeViewBase mOpenCvCameraView;
+	private RobotControl robot;
+	private RobotEnviroment enviroment;
 	private ColorTracking colorTracking;
 	
 	// Menu Items
@@ -73,7 +77,6 @@ public class MainActivity extends Activity implements
 
 	public MainActivity() {
 		Log.i(TAG, "Instantiated new " + this.getClass());
-
 	}
 
 	/** Called when the activity is first created. */
@@ -91,9 +94,9 @@ public class MainActivity extends Activity implements
 		mOpenCvCameraView.setOnTouchListener(this);
 		
 
-		Intent i = new Intent( getApplicationContext(), RobotActivity.class );
+	/*	Intent i = new Intent( getApplicationContext(), RobotActivity.class );
 		startActivity( i );
-		finish();
+		finish();*/
 	}
 
 	@Override
@@ -208,7 +211,9 @@ public class MainActivity extends Activity implements
 	}
 
 	public void onCameraViewStarted(int width, int height) {
-		//not used
+		colorTracking = new ColorTracking();
+		robot = new RobotControl(new FTDriver((UsbManager) getSystemService(USB_SERVICE)));
+		enviroment = new RobotEnviroment();
 	}
 
 	public void onCameraViewStopped() {
@@ -220,6 +225,10 @@ public class MainActivity extends Activity implements
 		
 		try {
 			image = colorTracking.processImage(inputFrame.rgba(), (int)POS_TRACK_X, (int)POS_TRACK_Y);
+			Point coordsRobot =  enviroment.locate(colorTracking.getTrackedColors());
+			
+			if(coordsRobot != null && image != null) 
+				Core.putText(image, "robot: " + String.valueOf(coordsRobot.x) + "," + String.valueOf(coordsRobot.y), new Point(0,0), Core.FONT_HERSHEY_SIMPLEX, 0.75, new Scalar(50.0)); 
 		} catch (NotFoundException e) {
 			Toast.makeText(this, "could not calc ProbMap", Toast.LENGTH_SHORT).show();
 		}
