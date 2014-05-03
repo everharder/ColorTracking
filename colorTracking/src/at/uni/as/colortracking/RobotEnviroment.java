@@ -21,7 +21,6 @@ public class RobotEnviroment {
 	
 	public Point locate(Beacon b1, Beacon b2){
 		Point robot = new Point();
-		//TODO: insert stefans shit here
 		
 		return robot;
 	}

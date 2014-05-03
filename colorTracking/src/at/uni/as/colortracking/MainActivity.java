@@ -14,6 +14,9 @@ import org.opencv.core.Point;
 import org.opencv.core.Scalar;
 
 import android.app.Activity;
+import android.app.AlertDialog;
+import android.app.AlertDialog.Builder;
+import android.content.DialogInterface;
 import android.content.res.Resources.NotFoundException;
 import android.hardware.usb.UsbManager;
 import android.os.Bundle;
@@ -25,9 +28,8 @@ import android.view.SurfaceView;
 import android.view.View;
 import android.view.View.OnTouchListener;
 import android.view.WindowManager;
+import android.widget.EditText;
 import android.widget.Toast;
-import at.uni.as.colortracking.R;
-import at.uni.as.colortracking.constants.Color;
 
 public class MainActivity extends Activity implements
 		CvCameraViewListener2, OnTouchListener {
@@ -40,23 +42,22 @@ public class MainActivity extends Activity implements
 	private static final float POS_TRACK_Y = RES_DISP_W / 2;
 
 	private CameraBridgeViewBase mOpenCvCameraView;
-	private RobotControl robot;
+	private Robot robot;
 	private RobotEnviroment enviroment;
-	private ColorTracking colorTracking;
+	private ColorTracking trackSingle;
+	private ColorTracking trackBeacon;
 	
 	// Menu Items
-	private MenuItem menuCalibrateRed = null;
-	private MenuItem menuCalibrateGreen = null;
-	private MenuItem menuCalibrateBlue = null;
-	private MenuItem menuCalibrateYellow = null;
-	private MenuItem menuCalibrateOrange = null;
-	private MenuItem menuCalibrateWhite = null;
+	private MenuItem menuCalibrateSingleColor = null;
 	private MenuItem menuHomography = null;
 	private MenuItem menuStartTracking = null;
 	
 	// flags
 	private boolean displayCross = false;
 	private boolean calibrationEnabled = true;
+	private boolean catchObject = true;
+	private boolean newSingleColor = false;
+	private boolean newBeacon = false;
 
 	private BaseLoaderCallback mLoaderCallback = new BaseLoaderCallback(this) {
 		@Override
@@ -124,12 +125,7 @@ public class MainActivity extends Activity implements
 		Log.i(TAG, "called onCreateOptionsMenu");
 		
 		this.menuStartTracking = menu.add("Toggle Tracking");
-		this.menuCalibrateRed = menu.add("Cal. RED");
-		this.menuCalibrateGreen = menu.add("Cal. GREEN");
-		this.menuCalibrateBlue = menu.add("Cal. BLUE");
-		this.menuCalibrateYellow = menu.add("Cal. YELLOW");
-		this.menuCalibrateOrange = menu.add("Cal. ORANGE");
-		this.menuCalibrateWhite = menu.add("Cal. WHITE");
+		this.menuCalibrateSingleColor = menu.add("Cal. Single Color");
 		this.menuHomography = menu.add("Cal. HOMOGRAPHY");
 
 		return true;
@@ -140,79 +136,63 @@ public class MainActivity extends Activity implements
 		Log.i(TAG, "called onOptionsItemSelected; selected item: " + item);
 
 		if (item == this.menuStartTracking) {
-			if(colorTracking.getTrackedColorCount() == 0) {
+			if(trackSingle.getTrackedColorCount() == 0 && trackBeacon.getTrackedColorCount() == 0) {
 				Toast.makeText(this, "no colors tracked", Toast.LENGTH_SHORT).show();
 				return true;
 			}			
 			
-			colorTracking.setTrackingActive(!colorTracking.getTrackingActive());
+			trackSingle.setTrackingActive(!trackSingle.getTrackingActive());
+			trackBeacon.setTrackingActive(!trackBeacon.getTrackingActive());
 			
-			if(!colorTracking.getTrackingActive())
-				colorTracking.resetTrackedObjects();
+			if(!trackSingle.getTrackingActive() || !trackBeacon.getTrackingActive()) {
+				trackSingle.resetTrackedObjects();
+				trackBeacon.resetTrackedObjects();
+			}
 			
 			setCalibrationMenuEnabled(!calibrationEnabled);
 			
-			if(colorTracking.getTrackingActive())
+			if(trackSingle.getTrackingActive() || trackBeacon.getTrackingActive())
 				Toast.makeText(this, "started tracking", Toast.LENGTH_SHORT).show();
 			else
 				Toast.makeText(this, "stopped tracking", Toast.LENGTH_SHORT).show();
 		} else if(item == this.menuHomography) {
-			colorTracking.setCalcHomography(true);
-		} else if (item == this.menuCalibrateRed) {
-			Toast.makeText(this,
-					"Touch to calibrate the RED probability matrix",
-					Toast.LENGTH_SHORT).show();
+			trackSingle.setCalcHomography(true);
+			trackBeacon.setCalcHomography(true);
+		} else if (item == this.menuCalibrateSingleColor) {
+			final EditText input = new EditText(this);
+			AlertDialog.Builder alert = getAlertWindow("Calibrate Single Color", "Enter Color label.", input);
 			
-			colorTracking.trackColor(Color.RED);
+			alert.setPositiveButton("Ok", new DialogInterface.OnClickListener() {
+				public void onClick(DialogInterface dialog, int whichButton) {
+					String value = input.getText().toString();
+					if(value != null && value.length() > 0) {
+						trackSingle.trackColor(value);
+					}
+				}
+			});
 			displayCross = true;
-			menuCalibrateRed.setEnabled(false);
-		} else if (item == this.menuCalibrateGreen) {
-			Toast.makeText(this,
-					"Touch to calibrate the GREEN probability matrix",
-					Toast.LENGTH_SHORT).show();
+			newSingleColor = true;
+			menuCalibrateSingleColor.setEnabled(false);
+			Toast.makeText(this,"Touch to calibrate the Color at the cross-center",	Toast.LENGTH_SHORT).show();
 			
-			colorTracking.trackColor(Color.GREEN);
-			displayCross = true;
-			menuCalibrateGreen.setEnabled(false);
-		} else if (item == this.menuCalibrateBlue) {
-			Toast.makeText(this,
-					"Touch to calibrate the BLUE probability matrix",
-					Toast.LENGTH_SHORT).show();
-			
-			colorTracking.trackColor(Color.BLUE);
-			displayCross = true;
-			menuCalibrateBlue.setEnabled(false);
-		} else if (item == this.menuCalibrateYellow) {
-			Toast.makeText(this,
-					"Touch to calibrate the YELLOW probability matrix",
-					Toast.LENGTH_SHORT).show();
-			
-			colorTracking.trackColor(Color.YELLOW);
-			displayCross = true;
-		} else if (item == this.menuCalibrateOrange) {
-			Toast.makeText(this,
-					"Touch to calibrate the ORANGE probability matrix",
-					Toast.LENGTH_SHORT).show();
-			
-			colorTracking.trackColor(Color.ORANGE);
-			displayCross = true;
-			menuCalibrateOrange.setEnabled(false);
-		} else if (item == this.menuCalibrateWhite) {
-			Toast.makeText(this,
-					"Touch to calibrate the WHITE probability matrix",
-					Toast.LENGTH_SHORT).show();
-			
-			colorTracking.trackColor(Color.WHITE);
-			displayCross = true;
-			menuCalibrateWhite.setEnabled(false);
 		} 
 		
 		return true;
 	}
 
+	private Builder getAlertWindow(String title, String message, EditText textbox) {
+		AlertDialog.Builder alert = new AlertDialog.Builder(this);
+		alert.setView(textbox);
+		alert.setTitle(title);
+		alert.setMessage(message);
+		
+		return alert;
+	}
+
 	public void onCameraViewStarted(int width, int height) {
-		colorTracking = new ColorTracking();
-		robot = new RobotControl(new FTDriver((UsbManager) getSystemService(USB_SERVICE)));
+		trackSingle = new ColorTracking();
+		trackBeacon = new ColorTracking();
+		robot = new Robot(new FTDriver((UsbManager) getSystemService(USB_SERVICE)));
 		enviroment = new RobotEnviroment();
 	}
 
@@ -224,11 +204,22 @@ public class MainActivity extends Activity implements
 		Mat image = null;
 		
 		try {
-			image = colorTracking.processImage(inputFrame.rgba(), (int)POS_TRACK_X, (int)POS_TRACK_Y);
-			Point coordsRobot =  enviroment.locate(colorTracking.getTrackedColors());
+			image = trackSingle.processImage(inputFrame.rgba(), (int)POS_TRACK_X, (int)POS_TRACK_Y);
+			image = trackBeacon.processImage(image, (int)POS_TRACK_X, (int)POS_TRACK_Y);
 			
-			if(coordsRobot != null && image != null) 
-				Core.putText(image, "robot: " + String.valueOf(coordsRobot.x) + "," + String.valueOf(coordsRobot.y), new Point(0,0), Core.FONT_HERSHEY_SIMPLEX, 0.75, new Scalar(50.0)); 
+			robot.setPosition(enviroment.locate(trackBeacon.getTrackedColors()));
+			
+			if(robot.getPosition() != null && image != null) {
+				Core.putText(image, "robot: " + String.valueOf(robot.getPosition().x) + "," + String.valueOf(robot.getPosition().y), new Point(0,0), Core.FONT_HERSHEY_SIMPLEX, 0.75, new Scalar(50.0));
+			}
+			
+			if(catchObject && robot.isConnected()) {
+				//add new catch target if not already set
+				if(!robot.isInCatchMode())
+					robot.setCatchObject(trackSingle.getTrackedColors());
+				
+				robot.catchObject();
+			}
 		} catch (NotFoundException e) {
 			Toast.makeText(this, "could not calc ProbMap", Toast.LENGTH_SHORT).show();
 		}
@@ -251,12 +242,18 @@ public class MainActivity extends Activity implements
 	public boolean onTouch(View v, MotionEvent event) {
 		switch (event.getAction()) {
 			case MotionEvent.ACTION_UP:
-				if(!colorTracking.isWaitingForProbMap())
+				if(!trackSingle.isWaitingForProbMap() && !trackBeacon.isWaitingForProbMap())
 					return true;
 				
-				if(!colorTracking.getCalcProbMap()) {
-					colorTracking.setCalcProbMap(true);
+				if(!trackSingle.getCalcProbMap() && newSingleColor) {
+					trackSingle.setCalcProbMap(true);
 					displayCross = false;
+					newSingleColor = false;
+					Toast.makeText(this, "ColorTracking added", Toast.LENGTH_SHORT).show();
+				} else if(!trackBeacon.getCalcProbMap() && newBeacon) {
+					trackBeacon.setCalcProbMap(true);
+					displayCross = false;
+					newBeacon = false;
 					Toast.makeText(this, "ColorTracking added", Toast.LENGTH_SHORT).show();
 				}
 				return true;
@@ -266,12 +263,7 @@ public class MainActivity extends Activity implements
 	}
 	
 	public void setCalibrationMenuEnabled(boolean enabled) {
-		menuCalibrateRed.setEnabled(enabled);
-		menuCalibrateBlue.setEnabled(enabled);
-		menuCalibrateGreen.setEnabled(enabled);
-		menuCalibrateYellow.setEnabled(enabled);
-		menuCalibrateOrange.setEnabled(enabled);
-		menuCalibrateWhite.setEnabled(enabled);
+		menuCalibrateSingleColor.setEnabled(enabled);
 		menuHomography.setEnabled(enabled);
 		
 		calibrationEnabled = enabled;
