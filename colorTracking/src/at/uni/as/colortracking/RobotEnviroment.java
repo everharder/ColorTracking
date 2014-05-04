@@ -25,7 +25,7 @@ public class RobotEnviroment {
 		return robot;
 	}
 	
-	public Point locate(List<TrackedColor> tracks){
+	public Point locate(List<TrackedObject> tracks){
 		Point robot = null;
 		
 		return robot;

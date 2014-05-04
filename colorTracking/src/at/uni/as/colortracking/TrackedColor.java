@@ -4,54 +4,30 @@ import java.util.ArrayList;
 import java.util.List;
 
 import org.opencv.core.Mat;
-import org.opencv.core.Point;
 
 public class TrackedColor {
-	private String color = null;
-	private Mat probMap = null;
-	private double threshold = -1;
-	
+	private double threshold = -1.0;
 	private List<Double> dist = new ArrayList<Double>();
-	private Point coords = null;
-
-	public List<Double> getDist() {
-		return dist;
-	}
-
-	public void addDist(double dist) {
-		this.dist.add(dist);
-	}
-
-	public TrackedColor(String color) {
-		this.color = color;
-	}
+	private Mat probMap = null;
 	
-	public TrackedColor(String color, Mat probMap) {
-		this(color);
+	public TrackedColor(Mat probMap) {
 		this.probMap = probMap;
 	}
 	
-	public TrackedColor(String color, Mat probMap, Point coords) {
-		this(color, probMap);
-		this.coords = coords;
+	public double getThreshold() {
+		return threshold;
 	}
 	
-	public TrackedColor(String color, Point coords) {
-		this(color);
-		this.coords = coords;
+	public void setThreshold(double threshold) {
+		this.threshold = threshold;
 	}
 	
-	public Point getCoords() {
-		return coords;
+	public List<Double> getDist() {
+		return dist;
 	}
-
-	public void setCoords(Point coords) {
-		this.coords = coords;
-	}
-
-	public TrackedColor(String color, Mat probMap, double threshold) {
-		this(color, probMap);
-		this.color = color;
+	
+	public void addDist(Double dist) {
+		this.dist.add(dist);
 	}
 	
 	public Mat getProbMap() {
@@ -62,15 +38,8 @@ public class TrackedColor {
 		this.probMap = probMap;
 	}
 	
-	public String getColor() {
-		return color;
-	}
-	
-	public double getThreshold() {
-		return threshold;
-	}
-
-	public void setThreshold(double threshold) {
-		this.threshold = threshold;
+	public void release() {
+		if(probMap != null)
+			probMap.release();
 	}
 }

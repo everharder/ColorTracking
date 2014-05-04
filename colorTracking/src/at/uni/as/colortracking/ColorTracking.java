@@ -26,30 +26,35 @@ public class ColorTracking {
 	private static final float SEGMENT_AREA_MIN = 200;
 
 	private Mat homography = null;
-	private List<TrackedColor> trackedColors = null;
-	private TrackedColor newTracking = null;
+	private List<TrackedObject> trackedObjects = null;
+	private TrackedObject newTracking = null;
 	private boolean trackingActive = false;
 	private boolean calcProbMap = false;
 	private boolean calcHomography = false;
 
 	public ColorTracking() {
-		this.trackedColors = new ArrayList<TrackedColor>();
+		this.trackedObjects = new ArrayList<TrackedObject>();
 	}
 
-	public void trackColor(String color) {
+	public void trackColor(String label, int trackCount) {
 		calcProbMap = false;
-		newTracking = new TrackedColor(color);
+		newTracking = new TrackedObject(label, trackCount);
 	}
 
 	public Mat processImage(Mat img, int x, int y) throws NotFoundException{
-		if (newTracking != null && calcProbMap) {
-			newTracking.setProbMap(calcProbability(img, x, y));
-			if(newTracking.getProbMap() == null)
+		if (newTracking != null && newTracking.getTracks().size() < newTracking.getTrackCount() && calcProbMap) {
+			Mat probMap = calcProbability(img, x, y);
+			if(probMap == null)
 				throw new NotFoundException();
+			else 
+				newTracking.addColorTrack(probMap);
 			
 			calcProbMap = false;
-			trackedColors.add(newTracking);
-			newTracking = null;
+			
+			if(newTracking.getTracks().size() == newTracking.getTrackCount()) {
+				trackedObjects.add(newTracking);
+				newTracking = null;
+			}
 		}
 
 		if (calcHomography) {
@@ -61,38 +66,36 @@ public class ColorTracking {
 			Mat trckImg = null;
 			List<Point> bottom = null;
 
-			for (TrackedColor track : trackedColors) {
-				trckImg = backprojection(img, track);
-				if (trckImg == null)
-					continue;
+			for (TrackedObject trackedObject : trackedObjects) {
+				
+				trackedObject.resetDists();
+				for(int i = 0; i < trackedObject.getTracks().size(); i++) {
+					trckImg = backprojection(img, trackedObject.getTrack(i));
+					
+					if (trckImg == null)
+						continue;
 
-				bottom = getBottom(ColorTrackingUtil.segment(trckImg));
-				if (bottom == null || bottom.size() == 0)
-					continue;
+					bottom = getBottom(ColorTrackingUtil.segment(trckImg));
+					if (bottom == null || bottom.size() == 0)
+						continue;
 
-				track.getDist().clear();
-				for(Point p : bottom) {
-					Core.circle(img, p, 5, new Scalar(0.0));
+					for(Point p : bottom) {
+						Core.circle(img, p, 5, new Scalar(0.0));
 		
-					// TODO: remove hardcoded stuff
-					if (homography != null) {
-						track.addDist(getDistance(p,homography) / 10.0);
-						Core.putText(
-								img,
-								track.getColor()
-										+ ": "
-										+ DecimalFormat.getIntegerInstance()
-												.format(track.getDist()), new Point(
-										p.x + 4, p.y),
-								Core.FONT_HERSHEY_SIMPLEX, 0.75, new Scalar(50.0));
-					} else {
-						Core.putText(img, track.getColor(), new Point(p.x + 4,
-								p.y), Core.FONT_HERSHEY_SIMPLEX, 0.75,
-								new Scalar(50.0));
+						if (homography != null) {
+							trackedObject.getTrack(i).addDist(getDistance(p,homography) / 10.0);
+							Core.putText(img, 	trackedObject.getLabel() 
+												+ ": " 
+												+ DecimalFormat.getIntegerInstance().format(trackedObject.getTrack(i).getDist().get(trackedObject.getTrack(i).getDist().size() - 1)), 
+										 new Point(p.x + 4, p.y),
+										 Core.FONT_HERSHEY_SIMPLEX, 0.75, new Scalar(50.0));
+						} else {
+							Core.putText(img, trackedObject.getLabel(), new Point(p.x + 4,p.y), Core.FONT_HERSHEY_SIMPLEX, 0.75, new Scalar(50.0));
+						}
 					}
-				}
 
-				trckImg.release();
+					trckImg.release();
+				}
 			}
 		}
 
@@ -154,7 +157,7 @@ public class ColorTracking {
 		Mat backproj = new Mat();
 		Mat imgRGB = new Mat();
 
-		// Convert from RGBA format to RG.
+		// Convert from RGBA fproormat to RG.
 		Imgproc.cvtColor(img, imgRGB, Imgproc.COLOR_RGBA2RGB);
 		Imgproc.calcBackProject(ColorTrackingUtil.convertRGB2RG(imgRGB),
 				new MatOfInt(0, 1), track.getProbMap(), backproj,
@@ -191,28 +194,6 @@ public class ColorTracking {
 
 		imgRGB.release();
 		return backproj;
-	}
-
-	/**
-	 * Calculates all possible back projections of the image in order RGBYOW if
-	 * all probability matrices are calibrated.
-	 * 
-	 * @param mImg
-	 *            Image.
-	 * @return List of back projections.
-	 */
-	public List<Mat> backprojection(Mat img, List<TrackedColor> trackedColors) {
-		List<Mat> backprojection = null;
-
-		if (trackedColors.size() == 0)
-			return null;
-
-		backprojection = new ArrayList<Mat>();
-		for (TrackedColor m : trackedColors) {
-			backprojection.add(backprojection(img, m));
-		}
-
-		return backprojection;
 	}
 
 	/**
@@ -268,7 +249,10 @@ public class ColorTracking {
 	}
 
 	public void resetTrackedObjects() {
-		trackedColors.clear();
+		for(TrackedObject t : trackedObjects) 
+			t.release();
+		
+		trackedObjects.clear();
 		newTracking = null;
 	}
 
@@ -297,14 +281,14 @@ public class ColorTracking {
 	}
 	
 	public int getTrackedColorCount() {
-		return trackedColors.size();
+		return trackedObjects.size();
 	}
 	
 	public boolean isWaitingForProbMap() {
 		return newTracking != null;
 	}
 	
-	public List<TrackedColor> getTrackedColors() {
-		return this.trackedColors;
+	public List<TrackedObject> getTrackedObjects() {
+		return trackedObjects;
 	}
 }

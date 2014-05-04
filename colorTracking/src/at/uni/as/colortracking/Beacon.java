@@ -3,29 +3,29 @@ package at.uni.as.colortracking;
 import org.opencv.core.Point;
 
 public class Beacon {
-	private TrackedColor top;
-	private TrackedColor bot;
+	private TrackedObject top;
+	private TrackedObject bot;
 	private Point coords;
 	
-	public Beacon(TrackedColor top, TrackedColor bot, Point coords) {
+	public Beacon(TrackedObject top, TrackedObject bot, Point coords) {
 		this.top = top;
 		this.bot = bot;
 		this.coords = coords;
 	}
 	
-	public TrackedColor getTop() {
+	public TrackedObject getTop() {
 		return top;
 	}
 
-	public void setTop(TrackedColor top) {
+	public void setTop(TrackedObject top) {
 		this.top = top;
 	}
 
-	public TrackedColor getBot() {
+	public TrackedObject getBot() {
 		return bot;
 	}
 
-	public void setBot(TrackedColor bot) {
+	public void setBot(TrackedObject bot) {
 		this.bot = bot;
 	}
 	

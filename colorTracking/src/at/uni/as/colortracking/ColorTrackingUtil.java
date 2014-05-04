@@ -336,4 +336,38 @@ public class ColorTrackingUtil {
 
 		return segments;
 	}
+
+	public static boolean hasCoordFormat(String value) {
+		
+		try {
+			String[] vals = value.split(":");
+			if (vals.length != 2)
+				return false;
+			
+			Double.parseDouble(vals[0]);
+			Double.parseDouble(vals[1]);
+		} catch(Exception e) {
+			return false;
+		}
+		
+		return true;
+	}
+	
+	public static Point parseCoords(String s) {
+		if(!hasCoordFormat(s))
+			return null;
+		
+		Point p = null;
+		try {
+			String[] vals = s.split(":");
+			if (vals.length != 2)
+				return null;
+			
+			p = new Point(Double.parseDouble(vals[0]), Double.parseDouble(vals[1]));
+		} catch(Exception e) {
+			return null;
+		}
+		
+		return p;
+	}
 }

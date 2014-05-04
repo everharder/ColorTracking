@@ -1,6 +1,9 @@
 package at.uni.as.colortracking;
 
+import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Random;
 import java.util.Stack;
 
@@ -9,24 +12,26 @@ import org.opencv.core.Point;
 import jp.ksksue.driver.serial.FTDriver;
 import android.annotation.SuppressLint;
 import android.view.View;
-import android.widget.TextView;
 
 @SuppressLint("UseValueOf")
 public class Robot{
 	@SuppressWarnings("unused")
 	private String TAG = "iRobot";
-	private TextView textLog;
 	private FTDriver com;
 	private Point position = null;
-	private TrackedColor catchObject = null;
 	private Stack<Command> history = new Stack<Robot.Command>();
 	
+	private TrackedObject catchObject = null;
 	private Double catchObjectDistCurrent = null;
 	private Double catchObjectDistOld = null;
 
+	public Robot() {
+	}
+	
 	public Robot(FTDriver com) {
-		this.com = com;
-		connect();
+		this();
+		
+		connect(com);
 	}
 	
 	public Robot(FTDriver com, Point position) {
@@ -34,23 +39,27 @@ public class Robot{
 		this.position = position;
 	}
 
-	public void connect() {
+	public boolean connect(FTDriver com) {
+		if(com == null)
+			return false;
+		
 		if (com.begin(9600)) {
-			textLog.append("connected\n");
-		} else {
-			textLog.append("could not connect\n");
+			this.com = com;
+			return true;
 		}
+
+		return false;
 	}
 
 	public void disconnect() {
+		if(com == null || !isConnected())
+			return;
+		
 		com.end();
-		if (!com.isConnected()) {
-			textLog.append("disconnected\n");
-		}
 	}
 	
 	public boolean isConnected(){
-		return com.isConnected();
+		return com != null && com.isConnected();
 	}
 
 	/**
@@ -59,10 +68,8 @@ public class Robot{
 	 * @param data
 	 */
 	public void comWrite(byte[] data) {
-		if (com.isConnected()) {
+		if (isConnected()) {
 			com.write(data);
-		} else {
-			textLog.append("not connected\n");
 		}
 	}
 
@@ -104,42 +111,36 @@ public class Robot{
 		return comRead();
 	}
 
-	private void logText(String text) {
-		if (text.length() > 0) {
-			textLog.append("[" + text.length() + "] " + text + "\n");
-		}
-	}
-
 	private void setLed(byte red, byte blue) {
-		logText(comReadWrite(new byte[] { 'u', red, blue, '\r', '\n' }));
+		comReadWrite(new byte[] { 'u', red, blue, '\r', '\n' });
 	}
 
 	private void setVelocity(byte left, byte right) {
-		logText(comReadWrite(new byte[] { 'i', left, right, '\r', '\n' }));
+		comReadWrite(new byte[] { 'i', left, right, '\r', '\n' });
 	}
 
 	private void setBar(byte value) {
-		logText(comReadWrite(new byte[] { 'o', value, '\r', '\n' }));
+		comReadWrite(new byte[] { 'o', value, '\r', '\n' });
 	}
 
 	// move forward
 	public void moveForward(){
-		logText(comReadWrite(new byte[] { 'w', '\r', '\n' }));
+		comReadWrite(new byte[] { 'w', '\r', '\n' });
 	}
 
 	// turn left
 	public void turnLeft() {
-		logText(comReadWrite(new byte[] { 'a', '\r', '\n' }));
+		comReadWrite(new byte[] { 'a', '\r', '\n' });
 	}
 
 	// stop
 	public void stop() {
-		logText(comReadWrite(new byte[] { 's', '\r', '\n' }));
+		comReadWrite(new byte[] { 's', '\r', '\n' });
 	}
 
 	// turn right
 	public void turnRight() {
-		logText(comReadWrite(new byte[] { 'd', '\r', '\n' }));
+		comReadWrite(new byte[] { 'd', '\r', '\n' });
 	}
 
 	// move backward
@@ -150,12 +151,12 @@ public class Robot{
 
 	// lower bar a few degrees
 	public void barLower() {
-		logText(comReadWrite(new byte[] { '-', '\r', '\n' }));
+		comReadWrite(new byte[] { '-', '\r', '\n' });
 	}
 
 	// rise bar a few degrees
 	public void barRise() {
-		logText(comReadWrite(new byte[] { '+', '\r', '\n' }));
+		comReadWrite(new byte[] { '+', '\r', '\n' });
 	}
 
 	// fixed position for bar (low)
@@ -179,7 +180,7 @@ public class Robot{
 	}
 
 	public void sensor(View v) {
-		logText(comReadWrite(new byte[] { 'q', '\r', '\n' }));
+		comReadWrite(new byte[] { 'q', '\r', '\n' });
 	}
 	
 	public Point getPosition() {
@@ -191,29 +192,36 @@ public class Robot{
 	}
 	
 	@SuppressLint("UseValueOf")
-	public void setCatchObject(List<TrackedColor> catchObjects) {
-		if(catchObjects == null || catchObjects.size() == 0 || catchObjects.get(0).getDist().size() == 0)
+	public void setCatchObject(List<TrackedObject> catchObjects) {
+		if(catchObjects == null || catchObjects.size() == 0)
 			return;
 		
-		TrackedColor nearestObject = catchObjects.get(0);
-		Double nearestObjectDist = catchObjects.get(0).getDist().get(0);
-		
-		for(TrackedColor obj : catchObjects) {
-			for(Double d : obj.getDist()) {
-				if(d < nearestObjectDist) {
-					nearestObject = obj;
-					nearestObjectDist = d;
-				}
-			}
+		Map<Double, TrackedObject> nearestObjects = new HashMap<Double, TrackedObject>();
+		for(TrackedObject t : catchObjects) {
+			nearestObjects.put(t.getCoherentDistanceNearest(), t);
 		}
 		
-		this.catchObject = nearestObject;
-		this.catchObjectDistCurrent = nearestObjectDist;
-		this.catchObjectDistOld = new Double(nearestObjectDist.doubleValue());
+		List<Double> dists = new ArrayList<Double>(nearestObjects.keySet());
+		if(dists.size() == 0)
+			return;
+		
+		Double nearest = dists.get(0);
+		for(Double d : dists) {
+			if(d < nearest)
+				nearest = d;
+		}
+	
+		this.catchObjectDistCurrent = nearest;
+		this.catchObjectDistOld = new Double(nearest.doubleValue());
+		this.catchObject = nearestObjects.get(nearest);
+	}
+	
+	public TrackedObject getCatchObject() {
+		return catchObject;
 	}
 	
 	public boolean isInCatchMode() {
-		return catchObject != null;
+		return catchObjectDistOld == null && catchObjectDistCurrent == null;
 	}
 	
 	public void catchObject() {
@@ -222,7 +230,6 @@ public class Robot{
 		
 		if(catchObjectDistCurrent == -1) {
 			if(history.isEmpty()) {
-				catchObject = null;
 				catchObjectDistCurrent = null;
 				catchObjectDistOld = null;
 			} else {
