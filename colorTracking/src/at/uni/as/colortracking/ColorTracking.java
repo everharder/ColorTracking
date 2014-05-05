@@ -19,7 +19,7 @@ import android.content.res.Resources.NotFoundException;
 import android.util.Pair;
 
 public class ColorTracking {
-	
+
 	private static final float BACKPROJ_THRESH_MAX = 30;
 	private static final float BACKPROJ_THRESH_MIN = 1;
 	private static final float BACKPROJ_THRESH_STP = 1;
@@ -42,17 +42,19 @@ public class ColorTracking {
 		newTracking = new TrackedObject(label, trackCount);
 	}
 
-	public Mat processImage(Mat img, int x, int y) throws NotFoundException{
-		if (newTracking != null && newTracking.getTracks().size() < newTracking.getTrackCount() && calcProbMap) {
+	public Mat processImage(Mat img, int x, int y) throws NotFoundException {
+		if (newTracking != null
+				&& newTracking.getTracks().size() < newTracking.getTrackCount()
+				&& calcProbMap) {
 			Mat probMap = calcProbability(img, x, y);
-			if(probMap == null)
+			if (probMap == null)
 				throw new NotFoundException();
-			else 
+			else
 				newTracking.addColorTrack(probMap);
-			
+
 			calcProbMap = false;
-			
-			if(newTracking.getTracks().size() == newTracking.getTrackCount()) {
+
+			if (newTracking.getTracks().size() == newTracking.getTrackCount()) {
 				trackedObjects.add(newTracking);
 				newTracking = null;
 			}
@@ -68,11 +70,11 @@ public class ColorTracking {
 			List<Point> bottom = null;
 
 			for (TrackedObject trackedObject : trackedObjects) {
-				
+
 				trackedObject.resetDists();
-				for(int i = 0; i < trackedObject.getTracks().size(); i++) {
+				for (int i = 0; i < trackedObject.getTracks().size(); i++) {
 					trckImg = backprojection(img, trackedObject.getTrack(i));
-					
+
 					if (trckImg == null)
 						continue;
 
@@ -188,7 +190,8 @@ public class ColorTracking {
 				contour = ColorTrackingUtil.getBiggestContour(res);
 
 				backprojClone.release();
-			} while (contour == null && currThreshold < ColorTracking.BACKPROJ_THRESH_MAX);
+			} while (contour == null
+					&& currThreshold < ColorTracking.BACKPROJ_THRESH_MAX);
 
 			if (currThreshold < ColorTracking.BACKPROJ_THRESH_MAX)
 				track.setThreshold(currThreshold);
@@ -219,12 +222,16 @@ public class ColorTracking {
 			return null;
 		
 		double max = -1.0;
+		Rect maxRec = null;
 		for(MatOfPoint p : contour) {
 			Rect rec = Imgproc.boundingRect(p);
-			if(rec.area() > max && rec.area() > SEGMENT_AREA_MIN)
-				bottom.add(new Point(rec.x + rec.width, rec.y + rec.height / 2));
+			if(rec.area() > max && rec.area() > SEGMENT_AREA_MIN) {
+				max = rec.area();
+				maxRec = rec;
+			}
 		}
-
+		
+		bottom.add(new Point(maxRec.x + maxRec.width, maxRec.y + maxRec.height / 2));
 		return bottom;
 	}
 
@@ -257,9 +264,9 @@ public class ColorTracking {
 	}
 
 	public void resetTrackedObjects() {
-		for(TrackedObject t : trackedObjects) 
+		for (TrackedObject t : trackedObjects)
 			t.release();
-		
+
 		trackedObjects.clear();
 		newTracking = null;
 	}
@@ -287,20 +294,24 @@ public class ColorTracking {
 	public void setCalcHomography(boolean calcHomography) {
 		this.calcHomography = calcHomography;
 	}
-	
+
 	public int getTrackedColorCount() {
 		return trackedObjects.size();
 	}
-	
+
 	public boolean isWaitingForProbMap() {
 		return newTracking != null;
 	}
-	
+
 	public List<TrackedObject> getTrackedObjects() {
 		return trackedObjects;
 	}
-	
+
 	public TrackedObject getNewTracking() {
 		return newTracking;
+	}
+
+	public boolean isHomographyEnabled() {
+		return homography != null;
 	}
 }
