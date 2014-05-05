@@ -18,7 +18,7 @@ public class RobotEnviroment {
 	public List<Beacon> getBeacons() {
 		return this.beacons;
 	}
-	
+
 	public Point locate(List<TrackedObject> tracks) {
 		Point robot = null;	
 		List<TrackedObject> beacons = new ArrayList<TrackedObject>();

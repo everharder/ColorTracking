@@ -149,6 +149,7 @@ public class MainActivity extends Activity implements CvCameraViewListener2,
 			setCalibrationMenuEnabled(calibrationEnabled);
 			
 			//toggle tracking
+
 			trackSingle.setTrackingActive(!trackSingle.getTrackingActive());
 			trackBeacon.setTrackingActive(!trackBeacon.getTrackingActive());
 			if (trackSingle.getTrackingActive()
