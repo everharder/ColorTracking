@@ -18,7 +18,7 @@ import org.opencv.imgproc.Imgproc;
 import android.content.res.Resources.NotFoundException;
 
 public class ColorTracking {
-	
+
 	private static final float BACKPROJ_THRESH_MAX = 30;
 	private static final float BACKPROJ_THRESH_MIN = 1;
 	private static final float BACKPROJ_THRESH_STP = 1;
@@ -41,17 +41,19 @@ public class ColorTracking {
 		newTracking = new TrackedObject(label, trackCount);
 	}
 
-	public Mat processImage(Mat img, int x, int y) throws NotFoundException{
-		if (newTracking != null && newTracking.getTracks().size() < newTracking.getTrackCount() && calcProbMap) {
+	public Mat processImage(Mat img, int x, int y) throws NotFoundException {
+		if (newTracking != null
+				&& newTracking.getTracks().size() < newTracking.getTrackCount()
+				&& calcProbMap) {
 			Mat probMap = calcProbability(img, x, y);
-			if(probMap == null)
+			if (probMap == null)
 				throw new NotFoundException();
-			else 
+			else
 				newTracking.addColorTrack(probMap);
-			
+
 			calcProbMap = false;
-			
-			if(newTracking.getTracks().size() == newTracking.getTrackCount()) {
+
+			if (newTracking.getTracks().size() == newTracking.getTrackCount()) {
 				trackedObjects.add(newTracking);
 				newTracking = null;
 			}
@@ -67,11 +69,11 @@ public class ColorTracking {
 			List<Point> bottom = null;
 
 			for (TrackedObject trackedObject : trackedObjects) {
-				
+
 				trackedObject.resetDists();
-				for(int i = 0; i < trackedObject.getTracks().size(); i++) {
+				for (int i = 0; i < trackedObject.getTracks().size(); i++) {
 					trckImg = backprojection(img, trackedObject.getTrack(i));
-					
+
 					if (trckImg == null)
 						continue;
 
@@ -79,18 +81,33 @@ public class ColorTracking {
 					if (bottom == null || bottom.size() == 0)
 						continue;
 
-					for(Point p : bottom) {
+					for (Point p : bottom) {
 						Core.circle(img, p, 5, new Scalar(0.0));
-		
+
 						if (homography != null) {
-							trackedObject.getTrack(i).addDist(getDistance(p,homography) / 10.0);
-							Core.putText(img, 	trackedObject.getLabel() 
-												+ ": " 
-												+ DecimalFormat.getIntegerInstance().format(trackedObject.getTrack(i).getDist().get(trackedObject.getTrack(i).getDist().size() - 1)), 
-										 new Point(p.x + 4, p.y),
-										 Core.FONT_HERSHEY_SIMPLEX, 0.75, new Scalar(50.0));
+							trackedObject.getTrack(i).addDist(
+									getDistance(p, homography) / 10.0);
+							Core.putText(
+									img,
+									trackedObject.getLabel()
+											+ ": "
+											+ DecimalFormat
+													.getIntegerInstance()
+													.format(trackedObject
+															.getTrack(i)
+															.getDist()
+															.get(trackedObject
+																	.getTrack(i)
+																	.getDist()
+																	.size() - 1)),
+									new Point(p.x + 4, p.y),
+									Core.FONT_HERSHEY_SIMPLEX, 0.75,
+									new Scalar(50.0));
 						} else {
-							Core.putText(img, trackedObject.getLabel(), new Point(p.x + 4,p.y), Core.FONT_HERSHEY_SIMPLEX, 0.75, new Scalar(50.0));
+							Core.putText(img, trackedObject.getLabel(),
+									new Point(p.x + 4, p.y),
+									Core.FONT_HERSHEY_SIMPLEX, 0.75,
+									new Scalar(50.0));
 						}
 					}
 
@@ -181,7 +198,8 @@ public class ColorTracking {
 				contour = ColorTrackingUtil.getBiggestContour(res);
 
 				backprojClone.release();
-			} while (contour == null && currThreshold < ColorTracking.BACKPROJ_THRESH_MAX);
+			} while (contour == null
+					&& currThreshold < ColorTracking.BACKPROJ_THRESH_MAX);
 
 			if (currThreshold < ColorTracking.BACKPROJ_THRESH_MAX)
 				track.setThreshold(currThreshold);
@@ -210,10 +228,10 @@ public class ColorTracking {
 
 		if (contour == null)
 			return null;
-		
-		for(MatOfPoint p : contour) {
+
+		for (MatOfPoint p : contour) {
 			Rect rec = Imgproc.boundingRect(p);
-			if(rec.area() > SEGMENT_AREA_MIN)
+			if (rec.area() > SEGMENT_AREA_MIN)
 				bottom.add(new Point(rec.x + rec.width, rec.y + rec.height / 2));
 		}
 
@@ -249,9 +267,9 @@ public class ColorTracking {
 	}
 
 	public void resetTrackedObjects() {
-		for(TrackedObject t : trackedObjects) 
+		for (TrackedObject t : trackedObjects)
 			t.release();
-		
+
 		trackedObjects.clear();
 		newTracking = null;
 	}
@@ -279,20 +297,24 @@ public class ColorTracking {
 	public void setCalcHomography(boolean calcHomography) {
 		this.calcHomography = calcHomography;
 	}
-	
+
 	public int getTrackedColorCount() {
 		return trackedObjects.size();
 	}
-	
+
 	public boolean isWaitingForProbMap() {
 		return newTracking != null;
 	}
-	
+
 	public List<TrackedObject> getTrackedObjects() {
 		return trackedObjects;
 	}
-	
+
 	public TrackedObject getNewTracking() {
 		return newTracking;
+	}
+
+	public boolean isHomographyEnabled() {
+		return homography != null;
 	}
 }
