@@ -6,10 +6,11 @@ import java.util.List;
 import org.opencv.core.Mat;
 import org.opencv.core.Point;
 
+import android.util.Pair;
+
 public class TrackedColor {
 	private double threshold = -1.0;
-	private List<Double> dist = new ArrayList<Double>();
-	private List<Point> bottoms = new ArrayList<Point>();
+	private List<Pair<Point, Double>> dist = new ArrayList<Pair<Point,Double>>();
 	private Mat probMap = null;
 	
 	public TrackedColor(Mat probMap) {
@@ -24,20 +25,16 @@ public class TrackedColor {
 		this.threshold = threshold;
 	}
 	
-	public List<Double> getDist() {
+	public List<Pair<Point, Double>> getDist() {
 		return dist;
 	}
 	
-	public void addDist(Double dist) {
-		this.dist.add(dist);
-	}
-
-	public List<Point> getBottoms() {
-		return bottoms;
+	public void addDist(Point bottom, Double dist) {
+		this.dist.add(new Pair<Point,Double>(bottom, dist));
 	}
 	
 	public void addBottom(Point bottom) {
-		this.bottoms.add(bottom);
+		this.dist.add(new Pair<Point,Double>(bottom, null));
 	}
 	
 	public Mat getProbMap() {
@@ -51,5 +48,11 @@ public class TrackedColor {
 	public void release() {
 		if(probMap != null)
 			probMap.release();
+	}
+
+	public void addBottoms(List<Point> bottom) {
+		for(Point p : bottom) {
+			dist.add(new Pair<Point, Double>(p, null));
+		}
 	}
 }

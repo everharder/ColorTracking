@@ -11,6 +11,7 @@ import org.opencv.core.Point;
 
 import jp.ksksue.driver.serial.FTDriver;
 import android.annotation.SuppressLint;
+import android.util.Pair;
 import android.view.View;
 
 @SuppressLint("UseValueOf")
@@ -196,23 +197,23 @@ public class Robot{
 		if(catchObjects == null || catchObjects.size() == 0)
 			return;
 		
-		Map<Double, TrackedObject> nearestObjects = new HashMap<Double, TrackedObject>();
+		Map<Pair<Point, Double>, TrackedObject> nearestObjects = new HashMap<Pair<Point,Double>, TrackedObject>();
 		for(TrackedObject t : catchObjects) {
 			nearestObjects.put(t.getCoherentDistanceNearest(), t);
 		}
 		
-		List<Double> dists = new ArrayList<Double>(nearestObjects.keySet());
+		List<Pair<Point, Double>> dists = new ArrayList<Pair<Point,Double>>(nearestObjects.keySet());
 		if(dists.size() == 0)
 			return;
 		
-		Double nearest = dists.get(0);
-		for(Double d : dists) {
-			if(d < nearest)
+		Pair<Point, Double> nearest = dists.get(0);
+		for(Pair<Point, Double> d : dists) {
+			if(d.second < nearest.second)
 				nearest = d;
 		}
 	
-		this.catchObjectDistCurrent = nearest;
-		this.catchObjectDistOld = new Double(nearest.doubleValue());
+		this.catchObjectDistCurrent = nearest.second;
+		this.catchObjectDistOld = new Double(nearest.second.doubleValue());
 		this.catchObject = nearestObjects.get(nearest);
 	}
 	

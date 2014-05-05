@@ -19,12 +19,6 @@ public class RobotEnviroment {
 		return this.beacons;
 	}
 	
-	public Point locate(Beacon b1, Beacon b2){
-		Point robot = new Point();
-		
-		return robot;
-	}
-	
 	public Point locate(List<TrackedObject> tracks){
 		Point robot = null;
 		

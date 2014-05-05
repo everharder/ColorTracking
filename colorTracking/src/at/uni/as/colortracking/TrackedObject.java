@@ -1,21 +1,21 @@
 package at.uni.as.colortracking;
 
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 
 import org.opencv.core.Mat;
 import org.opencv.core.Point;
 
+import android.util.Pair;
+
 public class TrackedObject {
-	private static final double DEFAULT_TOLERANCE = 15.0;
+	private static final double DEFAULT_TOLERANCE = 25.0;
 	
 	private String label = null;
 	private int trackCount = 0;
 	private List<TrackedColor> colors = new ArrayList<TrackedColor>();
 	private Point coords = null;
-	private double coherenceTolerance = DEFAULT_TOLERANCE; 
+	private double coherenceTolerance = DEFAULT_TOLERANCE;  
 	
 	
 	public TrackedObject(String label, int trackCount) {
@@ -28,53 +28,49 @@ public class TrackedObject {
 			colors.add(new TrackedColor(probMap));
 	}
 	
-	public List<Double> getCoherentDistances() {
+	public List<Pair<Point,Double>> getCoherentDistances() {
 		if(colors.size() == 0)
 			return null;
 		else if(colors.size() == 1)
 			return colors.get(0).getDist();
-		else {
-			List<Double> dists = new ArrayList<Double>(colors.get(0).getDist());
-			Map<Double, Integer> coherentDistances = new HashMap<Double, Integer>();
+		else if(colors.size() == 2){
+			List<Pair<Point,Double>> dists = new ArrayList<Pair<Point,Double>>();
 			
-			for(Double u : dists) {
-				for(int i = 1; i < colors.size(); i++) {
-					for(Double v : colors.get(i).getDist()) {
-						if(Math.abs(u - v) < coherenceTolerance) {
-							if(coherentDistances.containsKey(u)) {
-								coherentDistances.put(u, coherentDistances.get(u) + 1);
-							} else {
-								coherentDistances.put(u, 2);
+			for(Pair<Point, Double> u : colors.get(0).getDist()) {
+				for(Pair<Point, Double> v : colors.get(1).getDist()) {
+					if(v.first.x > u.first.x) {
+						if(u.second != null && v.second != null) {	
+							if(u.second - v.second < coherenceTolerance) {
+								dists.add(u);
 							}
+						} else {
+							dists.add(u);
 						}
 					}
 				}
 			}
 			
-			for(Double d : new ArrayList<Double>(coherentDistances.keySet())) {
-				if(coherentDistances.get(d) != colors.size())
-					coherentDistances.remove(d);
-			}
-			
-			return new ArrayList<Double>(coherentDistances.keySet());
+			return dists;
+		} else {
+			throw new UnsupportedOperationException();
 		}
 	}
 	
-	public Double getCoherentDistanceNearest() {
-		List<Double> dists = getCoherentDistances();
+	public Pair<Point, Double> getCoherentDistanceNearest() {
+		List<Pair<Point, Double>> dists = getCoherentDistances();
 		
 		if(dists == null || dists.size() == 0)
 			return null;
 		
-		Double min = dists.get(0);
+		Pair<Point, Double> min = dists.get(0);
 		for(int i = 1; i < dists.size(); i++) {
-			if(dists.get(i) < min)
+			if(dists.get(i).second < min.second)
 				min = dists.get(i);
 		}
 		
 		return min;
 	}
-
+	
 	public Point getCoords() {
 		if(coords != null)
 			return coords;

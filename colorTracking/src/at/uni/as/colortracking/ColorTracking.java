@@ -16,6 +16,7 @@ import org.opencv.core.Scalar;
 import org.opencv.imgproc.Imgproc;
 
 import android.content.res.Resources.NotFoundException;
+import android.util.Pair;
 
 public class ColorTracking {
 	
@@ -78,23 +79,29 @@ public class ColorTracking {
 					bottom = getBottom(ColorTrackingUtil.segment(trckImg));
 					if (bottom == null || bottom.size() == 0)
 						continue;
-
-					for(Point p : bottom) {
-						Core.circle(img, p, 5, new Scalar(0.0));
-		
-						if (homography != null) {
-							trackedObject.getTrack(i).addDist(getDistance(p,homography) / 10.0);
-							Core.putText(img, 	trackedObject.getLabel() 
-												+ ": " 
-												+ DecimalFormat.getIntegerInstance().format(trackedObject.getTrack(i).getDist().get(trackedObject.getTrack(i).getDist().size() - 1)), 
-										 new Point(p.x + 4, p.y),
-										 Core.FONT_HERSHEY_SIMPLEX, 0.75, new Scalar(50.0));
-						} else {
-							Core.putText(img, trackedObject.getLabel(), new Point(p.x + 4,p.y), Core.FONT_HERSHEY_SIMPLEX, 0.75, new Scalar(50.0));
+				
+					if (homography != null) {
+						for(Point p : bottom) { 
+							trackedObject.getTrack(i).getDist().add(new Pair<Point, Double>(p, getDistance(p,homography) / 10.0));
 						}
+					} else {
+						trackedObject.getTrack(i).addBottoms(bottom);
 					}
-
 					trckImg.release();
+				}
+			
+				for(Pair<Point, Double> p : trackedObject.getCoherentDistances()) {
+					Core.circle(img, p.first, 5, new Scalar(0.0));
+		
+					if (homography != null) {
+						Core.putText(img, 	trackedObject.getLabel() 
+											+ "|" 
+											+ DecimalFormat.getIntegerInstance().format(p.second), 
+									 new Point(p.first.x + 4, p.first.y),
+									 Core.FONT_HERSHEY_SIMPLEX, 0.75, new Scalar(50.0));
+					} else {
+						Core.putText(img, trackedObject.getLabel(), new Point(p.first.x + 4,p.first.y), Core.FONT_HERSHEY_SIMPLEX, 0.75, new Scalar(50.0));
+					}
 				}
 			}
 		}
@@ -211,9 +218,10 @@ public class ColorTracking {
 		if (contour == null)
 			return null;
 		
+		double max = -1.0;
 		for(MatOfPoint p : contour) {
 			Rect rec = Imgproc.boundingRect(p);
-			if(rec.area() > SEGMENT_AREA_MIN)
+			if(rec.area() > max && rec.area() > SEGMENT_AREA_MIN)
 				bottom.add(new Point(rec.x + rec.width, rec.y + rec.height / 2));
 		}
 

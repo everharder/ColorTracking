@@ -143,7 +143,8 @@ public class MainActivity extends Activity implements
 			}			
 			
 			//disable calibration buttons
-			setCalibrationMenuEnabled(!calibrationEnabled);
+			calibrationEnabled = !calibrationEnabled;
+			setCalibrationMenuEnabled(calibrationEnabled);
 			
 			//toggle tracking
 			trackSingle.setTrackingActive(!trackSingle.getTrackingActive());
