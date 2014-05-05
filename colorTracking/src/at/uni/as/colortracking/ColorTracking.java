@@ -291,4 +291,8 @@ public class ColorTracking {
 	public List<TrackedObject> getTrackedObjects() {
 		return trackedObjects;
 	}
+	
+	public TrackedObject getNewTracking() {
+		return newTracking;
+	}
 }
