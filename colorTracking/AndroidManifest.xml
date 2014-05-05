@@ -3,11 +3,32 @@
           package="at.uni.as.colortracking"
           android:versionCode="21"
           android:versionName="2.1">
+          
+     <supports-screens android:resizeable="true"
+                      android:smallScreens="true"
+                      android:normalScreens="true"
+                      android:largeScreens="true"
+                      android:anyDensity="true" />
 
+     <!-- do not set android:targetSdkVersion to a value higher as 11,
+      as the default behavior is then an ActionBar and the options button disappears.
+      Fix would be to switch to minSdkVersion=11 and set android:theme="@android:style/Theme.Holo.Light", 
+      but not necessary for now as it screws up the design. -->
+    <uses-sdk android:minSdkVersion="8"
+        	  android:targetSdkVersion="11" />
+    
+    <uses-permission android:name="android.permission.CAMERA"/>
+    
+    <uses-feature android:name="android.hardware.camera" android:required="false"/>
+    <uses-feature android:name="android.hardware.camera.autofocus" android:required="false"/>
+    <uses-feature android:name="android.hardware.camera.front" android:required="false"/>
+    <uses-feature android:name="android.hardware.camera.front.autofocus" android:required="false"/>
+    
     <application
         android:label="@string/app_name"
         android:icon="@drawable/icon"
-        android:theme="@android:style/Theme.NoTitleBar.Fullscreen" >
+        android:theme="@android:style/Theme.NoTitleBar.Fullscreen"
+        android:allowBackup="false" >
 
         <activity android:name="MainActivity"
                   android:label="@string/app_name"
@@ -16,40 +37,13 @@
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
-            </intent-filter>
-        </activity>
-        
-        <activity
-            android:name="at.uni.as.colortracking.RobotActivity"
-            android:label="@string/app_name" >
-            <intent-filter>
-                <action android:name="android.intent.action.MAIN" />
-
-                <category android:name="android.intent.category.LAUNCHER" />
-
                 <action android:name="android.hardware.usb.action.USB_DEVICE_ATTACHED" />
             </intent-filter>
-
+            
             <meta-data
                 android:name="android.hardware.usb.action.USB_DEVICE_ATTACHED"
                 android:resource="@xml/device_filter" />
         </activity>
+      
     </application>
-    
-    
-
-    <supports-screens android:resizeable="true"
-                      android:smallScreens="true"
-                      android:normalScreens="true"
-                      android:largeScreens="true"
-                      android:anyDensity="true" />
-
-    <uses-sdk android:minSdkVersion="8" />
-
-    <uses-permission android:name="android.permission.CAMERA"/>
-
-    <uses-feature android:name="android.hardware.camera" android:required="false"/>
-    <uses-feature android:name="android.hardware.camera.autofocus" android:required="false"/>
-    <uses-feature android:name="android.hardware.camera.front" android:required="false"/>
-    <uses-feature android:name="android.hardware.camera.front.autofocus" android:required="false"/>
 </manifest>
