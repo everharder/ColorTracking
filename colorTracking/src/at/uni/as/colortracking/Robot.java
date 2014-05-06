@@ -18,6 +18,7 @@ import android.view.View;
 public class Robot{
 	@SuppressWarnings("unused")
 	private String TAG = "iRobot";
+	private static Double CATCH_DIST = 25.0;
 	private FTDriver com;
 	private Point position = null;
 	private Stack<Command> history = new Stack<Robot.Command>();
@@ -205,7 +206,7 @@ public class Robot{
 		this.catchObjectDistOld = new Double(obj.getTrack(0).getDist().get(0).second);
 		this.catchObject = obj;
 		
-		ledOn();
+		//ledOn();
 	}
 	
 	public TrackedObject getCatchObject() {
@@ -217,7 +218,8 @@ public class Robot{
 	}
 	
 	public void catchObject() {
-		if(!isInCatchMode() || !isConnected())
+		//if(!isInCatchMode() || !isConnected())
+		if(!isInCatchMode())
 			return;
 		if(catchObject.getTrack(0).getDist() == null || catchObject.getTrack(0).getDist().get(0) == null || catchObject.getTrack(0).getDist().get(0).second == null)
 			return;
@@ -235,19 +237,24 @@ public class Robot{
 				undoCommand(history.pop());
 			}
 		} else {
-			if(catchObjectDistCurrent < 25.0) {
+			if(catchObjectDistCurrent < CATCH_DIST) {
 				barDown();
 				catchObjectFlag = false;
 			} else if(catchObjectDistCurrent <= catchObjectDistOld) {
-				doCommand(history.peek());
-				history.push(history.peek());
+				Command c = null;
+				if(!history.isEmpty())
+					c = history.peek();
+				else 
+					c = getRandomCommand();
+				doCommand(c);
+				history.push(c);
 				
 				catchObjectDistOld = new Double(catchObjectDistCurrent.doubleValue());
 			} else {
 				Command c = null;
 				do {
 					c = getRandomCommand();
-				} while(history.peek() != null && c == history.peek());
+				} while(!history.isEmpty() && c == history.peek());
 				
 				if(c != null) {
 					doCommand(c);
@@ -256,8 +263,6 @@ public class Robot{
 					catchObjectDistCurrent = null;
 					catchObjectDistOld = null;
 					catchObject = null;
-					
-					ledOff();
 				}
 				
 			}
@@ -277,6 +282,7 @@ public class Robot{
 			case BACKWARD: moveBackward();break;
 			case LEFT: turnLeft();break;
 			case RIGHT: turnRight();break;
+			default: moveForward();
 		}
 	}
 
