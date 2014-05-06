@@ -1,0 +1,4 @@
+*.apk
+colorTracking/bin/*
+colorTracking/gen/
+colorTracking/project.properties
