@@ -1,9 +1,5 @@
 package at.uni.as.colortracking;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
 import java.util.Random;
 import java.util.Stack;
 
@@ -11,7 +7,7 @@ import org.opencv.core.Point;
 
 import jp.ksksue.driver.serial.FTDriver;
 import android.annotation.SuppressLint;
-import android.util.Pair;
+import android.util.Log;
 import android.view.View;
 
 @SuppressLint("UseValueOf")
@@ -34,8 +30,8 @@ public class Robot{
 	
 	public Robot(FTDriver com) {
 		this();
-		
-		connect(com);
+		this.com = com;
+		connect();
 	}
 	
 	public Robot(FTDriver com, Point position) {
@@ -43,16 +39,12 @@ public class Robot{
 		this.position = position;
 	}
 
-	public boolean connect(FTDriver com) {
-		if(com == null)
-			return false;
-		
-		if (com.begin(9600)) {
-			this.com = com;
-			return true;
-		}
+	public void connect() {
+		if( com.begin( FTDriver.BAUD9600 ) )
+			Log.d( "connect", "connected" );
+		else
+			Log.d( "connect", "not connected" );
 
-		return false;
 	}
 
 	public void disconnect() {
@@ -106,6 +98,8 @@ public class Robot{
 	 * @return answer from serial interface
 	 */
 	public String comReadWrite(byte[] data) {
+		if( com != null )
+			Log.d( "comNull", "com is not null" );
 		com.write(data);
 		try {
 			Thread.sleep(100);
@@ -235,6 +229,7 @@ public class Robot{
 				catchObjectDistOld = null;
 			} else {
 				undoCommand(history.pop());
+				stopRobot();
 			}
 		} else {
 			if(catchObjectDistCurrent < CATCH_DIST) {
@@ -248,8 +243,9 @@ public class Robot{
 					c = getRandomCommand();
 				doCommand(c);
 				history.push(c);
+				stopRobot();
 				
-				catchObjectDistOld = new Double(catchObjectDistCurrent.doubleValue());
+ 				catchObjectDistOld = new Double(catchObjectDistCurrent.doubleValue());
 			} else {
 				Command c = null;
 				do {
@@ -259,6 +255,7 @@ public class Robot{
 				if(c != null) {
 					doCommand(c);
 					history.push(c);
+					stopRobot();
 				} else {
 					catchObjectDistCurrent = null;
 					catchObjectDistOld = null;
@@ -267,6 +264,17 @@ public class Robot{
 				
 			}
 		}
+	}
+	
+	private void stopRobot()
+	{
+		try{
+			Thread.sleep( 1000 );
+		} catch( InterruptedException e )
+		{
+			//ignore
+		}
+		stop();
 	}
 	
 	private Command getRandomCommand() {

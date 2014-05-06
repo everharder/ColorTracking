@@ -200,9 +200,9 @@ public class MainActivity extends Activity implements CvCameraViewListener2,
 	public void onCameraViewStarted(int width, int height) {
 		trackSingle = new ColorTracking();
 		trackBeacon = new ColorTracking();
-		robot = new Robot();
-		if (!robot.connect(new FTDriver(
-				(UsbManager) getSystemService(USB_SERVICE))))
+		robot = new Robot(new FTDriver(
+				(UsbManager) getSystemService(USB_SERVICE)));
+		if (!robot.isConnected())
 			Toast.makeText(getApplicationContext(),
 					"unable to connect to robot!", Toast.LENGTH_SHORT).show();
 		enviroment = new RobotEnviroment();
@@ -212,6 +212,8 @@ public class MainActivity extends Activity implements CvCameraViewListener2,
 			robot.ledOff();
 			robot.barDown();
 			robot.barUp();
+			robot.moveForward();
+			robot.stop();
 		}
 	}
 
@@ -220,11 +222,7 @@ public class MainActivity extends Activity implements CvCameraViewListener2,
 	}
 
 	public Mat onCameraFrame(CvCameraViewFrame inputFrame) {
-		Mat image = null;
-
-		/*
-		 * o robot.moveForward();
-		 */
+		Mat image = null;	 
 
 		try {
 			image = trackSingle.processImage(inputFrame.rgba(),
