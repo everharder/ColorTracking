@@ -5,6 +5,8 @@ import java.util.List;
 
 import org.opencv.core.Point;
 
+import android.util.Pair;
+
 public class RobotEnviroment {
 	private List<Beacon> beacons = new ArrayList<Beacon>();
 
@@ -29,10 +31,14 @@ public class RobotEnviroment {
 				beacons.add(t);
 
 		if (beacons.size() > 1) {
+			List<Pair<Point, Double>> u = beacons.get(0).getCoherentDistances();
+			List<Pair<Point, Double>> v = beacons.get(1).getCoherentDistances();
+			
+			if(u == null || u.size() == 0 || u.get(0) == null || u.get(0).second == null || v == null || v.size() == 0 || v.get(0) == null || v.get(0).second == null)
+				return null;
+			
 			// Determine intersection of two circles.
-			List<Point> intersects = CircleCut.circleIntersect(beacons.get(0)
-					.getCoherentDistanceNearest().second, beacons.get(1)
-					.getCoherentDistanceNearest().second, beacons.get(0).getCoords(),
+			List<Point> intersects = CircleCut.circleIntersect(u.get(0).second, v.get(0).second, beacons.get(0).getCoords(),
 					beacons.get(1).getCoords());
 
 			System.out.println("Point 0: " + intersects.get(0) + "\t Point 1: "

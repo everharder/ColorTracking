@@ -25,6 +25,8 @@ public class Robot{
 	private TrackedObject catchObject = null;
 	private Double catchObjectDistCurrent = null;
 	private Double catchObjectDistOld = null;
+	
+	private boolean catchObjectFlag = false;
 
 	public Robot() {
 	}
@@ -161,21 +163,21 @@ public class Robot{
 	}
 
 	// fixed position for bar (low)
-	public void barDown(View v) {
+	public void barDown() {
 		setBar((byte) 0);
 	}
 
 	// fixed position for bar (high)
-	public void barUp(View v) {
+	public void barUp() {
 		setBar((byte) 255);
 	}
 
-	public void ledOn(View v) {
+	public void ledOn() {
 		// logText(comReadWrite(new byte[] { 'r', '\r', '\n' }));
 		setLed((byte) 255, (byte) 128);
 	}
 
-	public void ledOff(View v) {
+	public void ledOff() {
 		// logText(comReadWrite(new byte[] { 'e', '\r', '\n' }));
 		setLed((byte) 0, (byte) 0);
 	}
@@ -193,28 +195,17 @@ public class Robot{
 	}
 	
 	@SuppressLint("UseValueOf")
-	public void setCatchObject(List<TrackedObject> catchObjects) {
-		if(catchObjects == null || catchObjects.size() == 0)
+	public void setCatchObject(TrackedObject obj) {
+		if(obj == null || obj.getTrackCount() > 1)
+			return;
+		if(obj.getTrack(0).getDist() == null || obj.getTrack(0).getDist().get(0) == null || obj.getTrack(0).getDist().get(0).second == null)
 			return;
 		
-		Map<Pair<Point, Double>, TrackedObject> nearestObjects = new HashMap<Pair<Point,Double>, TrackedObject>();
-		for(TrackedObject t : catchObjects) {
-			nearestObjects.put(t.getCoherentDistanceNearest(), t);
-		}
+		this.catchObjectDistCurrent = obj.getTrack(0).getDist().get(0).second;
+		this.catchObjectDistOld = new Double(obj.getTrack(0).getDist().get(0).second);
+		this.catchObject = obj;
 		
-		List<Pair<Point, Double>> dists = new ArrayList<Pair<Point,Double>>(nearestObjects.keySet());
-		if(dists.size() == 0)
-			return;
-		
-		Pair<Point, Double> nearest = dists.get(0);
-		for(Pair<Point, Double> d : dists) {
-			if(d.second < nearest.second)
-				nearest = d;
-		}
-	
-		this.catchObjectDistCurrent = nearest.second;
-		this.catchObjectDistOld = new Double(nearest.second.doubleValue());
-		this.catchObject = nearestObjects.get(nearest);
+		ledOn();
 	}
 	
 	public TrackedObject getCatchObject() {
@@ -222,12 +213,19 @@ public class Robot{
 	}
 	
 	public boolean isInCatchMode() {
-		return catchObjectDistOld == null && catchObjectDistCurrent == null;
+		return catchObjectDistOld != null && catchObjectDistCurrent != null && catchObject != null;
 	}
 	
 	public void catchObject() {
 		if(!isInCatchMode() || !isConnected())
 			return;
+		if(catchObject.getTrack(0).getDist() == null || catchObject.getTrack(0).getDist().get(0) == null || catchObject.getTrack(0).getDist().get(0).second == null)
+			return;
+		
+		Double catchObjectDistCurrent = catchObject.getTrack(0).getDist().get(0).second;
+		
+		if(catchObjectDistCurrent == null)
+			return; 
 		
 		if(catchObjectDistCurrent == -1) {
 			if(history.isEmpty()) {
@@ -237,19 +235,31 @@ public class Robot{
 				undoCommand(history.pop());
 			}
 		} else {
-			if(catchObjectDistCurrent < catchObjectDistOld) {
+			if(catchObjectDistCurrent < 25.0) {
+				barDown();
+				catchObjectFlag = false;
+			} else if(catchObjectDistCurrent <= catchObjectDistOld) {
 				doCommand(history.peek());
 				history.push(history.peek());
 				
 				catchObjectDistOld = new Double(catchObjectDistCurrent.doubleValue());
 			} else {
-				Command c;
+				Command c = null;
 				do {
 					c = getRandomCommand();
-				} while(c == history.peek());
+				} while(history.peek() != null && c == history.peek());
 				
-				doCommand(c);
-				history.push(c);
+				if(c != null) {
+					doCommand(c);
+					history.push(c);
+				} else {
+					catchObjectDistCurrent = null;
+					catchObjectDistOld = null;
+					catchObject = null;
+					
+					ledOff();
+				}
+				
 			}
 		}
 	}
@@ -278,6 +288,15 @@ public class Robot{
 			case RIGHT: turnLeft();break;
 		}
 	}
+	
+	public boolean isCatchObjectEnabled() {
+		return catchObjectFlag;
+	}
+
+	public void setCatchObjectEnabled(boolean catchObjectFlag) {
+		this.catchObjectFlag = catchObjectFlag;
+	}
+
 
 	public enum Command {
 		FORWARD,

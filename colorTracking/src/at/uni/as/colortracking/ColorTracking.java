@@ -231,7 +231,10 @@ public class ColorTracking {
 			}
 		}
 		
+		if(maxRec == null)
+			return null;
 		bottom.add(new Point(maxRec.x + maxRec.width, maxRec.y + maxRec.height / 2));
+		
 		return bottom;
 	}
 
