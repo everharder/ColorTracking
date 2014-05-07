@@ -41,31 +41,22 @@ public class RobotEnviroment {
 			List<Point> intersects = CircleCut.circleIntersect(d0.second,
 					d1.second, p0, p1);
 			// Determine middle point of intersection.
-			Point m = new Point(Math.abs(intersects.get(0).x
-					- intersects.get(1).x), Math.abs(intersects.get(0).y
-					- intersects.get(1).y));
+			Point m = new Point(
+					(intersects.get(0).x + intersects.get(1).x) / 2,
+					(intersects.get(0).y + intersects.get(1).y) / 2);
+			// Determine distance between beacon and Point m.
+			double lb = Math.sqrt(Math.pow(Math.abs(m.x - p0.x), 2)
+					+ Math.pow(Math.abs(m.y - p0.y), 2));
+			// Determine distance between robot and Point m.
+			double lr = Math.sqrt(Math.pow(d0.second, 2) - Math.pow(lb, 2));
 
 			// Case LEFT or RIGHT
 			if ((p0.x == MIN_X && p1.x == MIN_X)
-					|| (p0.x == MAX_X && p1.x == MAX_X)) {
-				// Determine distance between beacon and Point m.
-				double l = Math.sqrt(Math.pow(m.x, 2)
-						+ Math.pow(Math.abs(m.y - p0.y), 2));
-				// Determine distance between robot and Point m.
-				double lr = Math.sqrt(Math.pow(d0.second, 2) - Math.pow(l, 2));
-
+					|| (p0.x == MAX_X && p1.x == MAX_X))
 				robot = new Point(Math.abs(m.x - lr), m.y);
-			}
 			// Case UP or DOWN
-			else {
-				// Determine distance between beacon and Point m.
-				double l = Math.sqrt(Math.pow(Math.abs(m.x - p0.x), 2)
-						+ Math.pow(m.y, 2));
-				// Determine distance between robot and Point m.
-				double lr = Math.sqrt(Math.pow(d0.second, 2) - Math.pow(l, 2));
-
+			else
 				robot = new Point(m.x, Math.abs(m.y - lr));
-			}
 		}
 
 		return robot;
