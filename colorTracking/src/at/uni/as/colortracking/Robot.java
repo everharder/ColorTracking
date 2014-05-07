@@ -193,14 +193,12 @@ public class Robot{
 	public void setCatchObject(TrackedObject obj) {
 		if(obj == null || obj.getTrackCount() > 1)
 			return;
-		if(obj.getTrack(0).getDist() == null || obj.getTrack(0).getDist().get(0) == null || obj.getTrack(0).getDist().get(0).second == null)
+		if(obj.getTrack(0).getDist() == null || obj.getTrack(0).getDist().size() == 0 || obj.getTrack(0).getDist().get(0).second == null)
 			return;
 		
 		this.catchObjectDistCurrent = obj.getTrack(0).getDist().get(0).second;
 		this.catchObjectDistOld = new Double(obj.getTrack(0).getDist().get(0).second);
 		this.catchObject = obj;
-		
-		//ledOn();
 	}
 	
 	public TrackedObject getCatchObject() {
@@ -213,25 +211,46 @@ public class Robot{
 	
 	public void catchObject() {
 		//if(!isInCatchMode() || !isConnected())
-		if(!isInCatchMode())
-			return;
-		if(catchObject.getTrack(0).getDist() == null || catchObject.getTrack(0).getDist().get(0) == null || catchObject.getTrack(0).getDist().get(0).second == null)
+		
+		if( catchObject == null )
+		{
+			if(history.isEmpty()) {
+				Command c = null;
+				if(!history.isEmpty())
+					c = history.peek();
+				else 
+					c = getRandomCommand();
+				doCommand(c);
+				history.push(c);
+				stopRobot();
+				try {
+					Thread.sleep( 1000 );
+				} catch ( InterruptedException e ) {
+					//ignore
+				}
+				catchObjectDistCurrent = null;
+				catchObjectDistOld = null;
+			} else {
+				undoCommand(history.pop());
+				stopRobot();
+				try {
+					Thread.sleep( 1000 );
+				} catch ( InterruptedException e ) {
+					//ignore
+				}
+			}
+		}
+			
+		if(catchObject == null || catchObject.getTrack(0).getDist() == null 
+				|| catchObject.getTrack(0).getDist().size() == 0 
+				|| catchObject.getTrack(0).getDist().get(0).second == null)
 			return;
 		
 		Double catchObjectDistCurrent = catchObject.getTrack(0).getDist().get(0).second;
 		
 		if(catchObjectDistCurrent == null)
 			return; 
-		
-		if(catchObjectDistCurrent == -1) {
-			if(history.isEmpty()) {
-				catchObjectDistCurrent = null;
-				catchObjectDistOld = null;
-			} else {
-				undoCommand(history.pop());
-				stopRobot();
-			}
-		} else {
+
 			if(catchObjectDistCurrent < CATCH_DIST) {
 				barDown();
 				catchObjectFlag = false;
@@ -244,6 +263,11 @@ public class Robot{
 				doCommand(c);
 				history.push(c);
 				stopRobot();
+				try {
+					Thread.sleep( 1000 );
+				} catch ( InterruptedException e ) {
+					//ignore
+				}
 				
  				catchObjectDistOld = new Double(catchObjectDistCurrent.doubleValue());
 			} else {
@@ -256,6 +280,11 @@ public class Robot{
 					doCommand(c);
 					history.push(c);
 					stopRobot();
+					try {
+						Thread.sleep( 1000 );
+					} catch ( InterruptedException e ) {
+						//ignore
+					}
 				} else {
 					catchObjectDistCurrent = null;
 					catchObjectDistOld = null;
@@ -263,7 +292,6 @@ public class Robot{
 				}
 				
 			}
-		}
 	}
 	
 	private void stopRobot()
