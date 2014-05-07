@@ -1,4 +1,4 @@
-package at.uni.as.colortracking;
+package at.uni.as.colortracking.robot;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -6,22 +6,13 @@ import java.util.List;
 import org.opencv.core.Point;
 
 import android.util.Pair;
+import at.uni.as.colortracking.tracking.TrackedObject;
 
 public class RobotEnviroment {
 	private static final double MIN_X = 0;
 	private static final double MAX_X = 150;
 
-	private List<Beacon> beacons = new ArrayList<Beacon>();
-
 	public RobotEnviroment() {
-	}
-
-	public void addBeacon(Beacon beacon) {
-		beacons.add(beacon);
-	}
-
-	public List<Beacon> getBeacons() {
-		return this.beacons;
 	}
 
 	public Point locate(List<TrackedObject> tracks) {

@@ -1,4 +1,4 @@
-package at.uni.as.colortracking;
+package at.uni.as.colortracking.tracking;
 
 import java.text.DecimalFormat;
 import java.util.ArrayList;

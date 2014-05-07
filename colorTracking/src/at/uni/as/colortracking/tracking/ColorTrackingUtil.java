@@ -1,4 +1,4 @@
-package at.uni.as.colortracking;
+package at.uni.as.colortracking.tracking;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -372,5 +372,26 @@ public class ColorTrackingUtil {
 		}
 		
 		return p;
+	}
+	
+	public static List<Point> parseCoordsList(String s) {
+		if(s == null)
+			return null;
+		
+		String[] coordPairs = s.split("\n");
+		List<Point> coordList = new ArrayList<Point>();
+		for(int i=0; i < coordPairs.length; i++) {
+			try {
+				String[] coords = coordPairs[i].split(":");
+				double x = Double.valueOf(coords[0]);
+				double y = Double.valueOf(coords[1]);
+				
+				coordList.add(new Point(x, y));
+			} catch(Exception e) {
+				return null;
+			}
+		}
+		
+		return coordList;
 	}
 }

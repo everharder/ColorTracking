@@ -1,4 +1,4 @@
-package at.uni.as.colortracking;
+package at.uni.as.colortracking.tracking;
 
 import java.util.ArrayList;
 import java.util.List;

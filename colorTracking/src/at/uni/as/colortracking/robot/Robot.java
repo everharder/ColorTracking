@@ -1,5 +1,7 @@
-package at.uni.as.colortracking;
+package at.uni.as.colortracking.robot;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Random;
 import java.util.Stack;
 
@@ -9,22 +11,33 @@ import org.opencv.core.Point;
 
 import android.annotation.SuppressLint;
 import android.util.Log;
+import android.util.Pair;
 import android.view.View;
+import at.uni.as.colortracking.tracking.TrackedObject;
 
 @SuppressLint("UseValueOf")
 public class Robot{
 	@SuppressWarnings("unused")
 	private String TAG = "iRobot";
+	
 	private static Double CATCH_DIST = 25.0;
+	private static int DEFAULT_VELOCITY = 30;
+	private static int DEFAULT_MOVE_TIME = 1000; //ms
+	
+	
+	
 	private FTDriver com;
 	private Point position = null;
 	private Stack<Command> history = new Stack<Robot.Command>();
 	
 	private TrackedObject catchObject = null;
-	private Double catchObjectDistCurrent = null;
-	private Double catchObjectDistOld = null;
+	private List<Point> moveToCoords = new ArrayList<Point>();
+	
+	private Double targetDistCur = null;
+	private Double targetDistOld = null;
 	
 	private boolean catchObjectFlag = false;
+	private boolean moveToCoordFlag = false;
 
 	public Robot() {
 	}
@@ -126,6 +139,46 @@ public class Robot{
 	public void moveForward(){
 		comReadWrite(new byte[] { 'w', '\r', '\n' });
 	}
+	
+	// move forward
+	public void moveForward(int v, int t){
+		setVelocity((byte)v, (byte)v);
+		
+		try {
+			Thread.sleep(t);
+		} catch (InterruptedException e) {
+		}
+	}
+	
+	// move backward
+	public void moveBackward(int v, int t){
+		setVelocity((byte)-v, (byte)-v);
+		
+		try {
+			Thread.sleep(t);
+		} catch (InterruptedException e) {
+		}
+	}
+		
+	// turn left
+	public void turnLeft(int v, int t){
+		setVelocity((byte)0, (byte)v);
+			
+		try {
+			Thread.sleep(t);
+		} catch (InterruptedException e) {
+		}
+	}
+		
+		// turn right
+	public void turnRight(int v, int t){
+		setVelocity((byte)v, (byte)0);
+			
+		try {
+			Thread.sleep(t);
+		} catch (InterruptedException e) {
+		}
+	}
 
 	// turn left
 	public void turnLeft() {
@@ -197,8 +250,8 @@ public class Robot{
 		if(obj.getTrack(0).getDist() == null || obj.getTrack(0).getDist().size() == 0 || obj.getTrack(0).getDist().get(0).second == null)
 			return;
 		
-		this.catchObjectDistCurrent = obj.getTrack(0).getDist().get(0).second;
-		this.catchObjectDistOld = new Double(obj.getTrack(0).getDist().get(0).second);
+		this.targetDistCur = obj.getTrack(0).getDist().get(0).second;
+		this.targetDistOld = new Double(obj.getTrack(0).getDist().get(0).second);
 		this.catchObject = obj;
 	}
 	
@@ -206,104 +259,86 @@ public class Robot{
 		return catchObject;
 	}
 	
-	public boolean isInCatchMode() {
-		return catchObjectDistOld != null && catchObjectDistCurrent != null && catchObject != null;
+	public boolean isCatchObjectSet() {
+		return targetDistOld != null && targetDistCur != null && catchObject != null;
 	}
 	
 	public void catchObject() {
-		//if(!isInCatchMode() || !isConnected())
+		if(!isCatchObjectEnabled() || !isConnected())
+			return;
 		
-		if( catchObject == null )
-		{
+		Pair<Point, Double> dist = catchObject.getCoherentDistanceNearest();
+		
+		if(dist == null || dist.second == null || dist.second < 0) {
 			if(history.isEmpty()) {
-				Command c = null;
-				if(!history.isEmpty())
-					c = history.peek();
-				else 
-					c = getRandomCommand();
-				doCommand(c);
+				Command c = getRandomCommand();
+				doCommand(c, Robot.DEFAULT_VELOCITY, Robot.DEFAULT_MOVE_TIME);
 				history.push(c);
-				stopRobot();
+				
 				try {
 					Thread.sleep( 1000 );
 				} catch ( InterruptedException e ) {
 					//ignore
 				}
-				catchObjectDistCurrent = null;
-				catchObjectDistOld = null;
+				
+				targetDistCur = null;
+				targetDistOld = null;
 			} else {
-				undoCommand(history.pop());
-				stopRobot();
+				undoCommand(history.pop(), Robot.DEFAULT_VELOCITY, Robot.DEFAULT_MOVE_TIME);
 				try {
 					Thread.sleep( 1000 );
 				} catch ( InterruptedException e ) {
 					//ignore
 				}
 			}
-		}
-			
-		if(catchObject == null || catchObject.getTrack(0).getDist() == null 
-				|| catchObject.getTrack(0).getDist().size() == 0 
-				|| catchObject.getTrack(0).getDist().get(0).second == null)
-			return;
-		
-		Double catchObjectDistCurrent = catchObject.getTrack(0).getDist().get(0).second;
-		
-		if(catchObjectDistCurrent == null)
-			return; 
+		} else {
+			targetDistOld = targetDistCur;	
+			targetDistCur = dist.second;
 
-			if(catchObjectDistCurrent < CATCH_DIST) {
+			if(targetDistCur < CATCH_DIST) {
 				barDown();
 				catchObjectFlag = false;
-			} else if(catchObjectDistCurrent <= catchObjectDistOld) {
+			} else if(targetDistCur <= targetDistOld) {
 				Command c = null;
+				
 				if(!history.isEmpty())
 					c = history.peek();
 				else 
 					c = getRandomCommand();
-				doCommand(c);
-				history.push(c);
-				stopRobot();
-				try {
-					Thread.sleep( 1000 );
-				} catch ( InterruptedException e ) {
-					//ignore
-				}
 				
- 				catchObjectDistOld = new Double(catchObjectDistCurrent.doubleValue());
+				doCommand(c, Robot.DEFAULT_VELOCITY, Robot.DEFAULT_MOVE_TIME);
+				history.push(c);
 			} else {
 				Command c = null;
 				do {
 					c = getRandomCommand();
 				} while(!history.isEmpty() && c == history.peek());
-				
+			
 				if(c != null) {
 					doCommand(c);
 					history.push(c);
-					stopRobot();
+
 					try {
 						Thread.sleep( 1000 );
 					} catch ( InterruptedException e ) {
 						//ignore
 					}
 				} else {
-					catchObjectDistCurrent = null;
-					catchObjectDistOld = null;
+					targetDistCur = null;
+					targetDistOld = null;
 					catchObject = null;
 				}
-				
 			}
+		}
 	}
 	
-	private void stopRobot()
-	{
-		try{
-			Thread.sleep( 1000 );
-		} catch( InterruptedException e )
-		{
-			//ignore
+	public void moveToCoords(){
+		if(!moveToCoordFlag || moveToCoords == null || moveToCoords.size() == 0 || position == null)
+			return;
+		
+		if(targetDistOld == null) {
+			
 		}
-		stop();
 	}
 	
 	private Command getRandomCommand() {
@@ -313,7 +348,7 @@ public class Robot{
 		return Command.values()[randomNumber];
 	}
 
-	private void doCommand(Command c) {
+	public void doCommand(Command c) {
 		switch(c) {
 			case FORWARD: moveForward();break;
 			case BACKWARD: moveBackward();break;
@@ -322,13 +357,32 @@ public class Robot{
 			default: moveForward();
 		}
 	}
+	
+	public void doCommand(Command c, int v, int t) {
+		switch(c) {
+			case FORWARD: moveForward(v,t);break;
+			case BACKWARD: moveBackward(v,t);break;
+			case LEFT: turnLeft(v,t);break;
+			case RIGHT: turnRight(v,t);break;
+			default: moveForward(v,t);
+		}
+	}
 
-	private void undoCommand(Command c) {
+	public void undoCommand(Command c) {
 		switch(c) {
 			case FORWARD: moveBackward();break;
 			case BACKWARD: moveForward();break;
 			case LEFT: turnRight();break;
 			case RIGHT: turnLeft();break;
+		}
+	}
+	
+	public void undoCommand(Command c, int v, int t) {
+		switch(c) {
+			case FORWARD: moveBackward(v,t);break;
+			case BACKWARD: moveForward(v,t);break;
+			case LEFT: turnRight(v,t);break;
+			case RIGHT: turnLeft(v,t);break;
 		}
 	}
 	
@@ -338,6 +392,24 @@ public class Robot{
 
 	public void setCatchObjectEnabled(boolean catchObjectFlag) {
 		this.catchObjectFlag = catchObjectFlag;
+	}
+	
+	public boolean isMoveToCoordsEnabled() {
+		return moveToCoordFlag;
+	}
+	
+	public void setMoveToCoordsEnabled(boolean enabled) {
+		this.moveToCoordFlag = enabled;
+	}
+	
+	public void setMoveToCoords(List<Point> coords) {
+		if(coords == null || coords.size() == 0)
+			return;
+		
+		this.moveToCoords = coords;
+		moveToCoordFlag = true;
+		targetDistCur = null;
+		targetDistOld = null;
 	}
 
 
