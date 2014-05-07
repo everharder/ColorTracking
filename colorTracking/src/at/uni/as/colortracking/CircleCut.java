@@ -10,7 +10,7 @@ public class CircleCut {// calculates the cutting points of two circles...
 		ArrayList<Point> intersections = new ArrayList<Point>();
 		double x1 = m1.x, y1 = m1.y, x2 = m2.x, y2 = m2.y; // circles
 		double resultX1 = 0, resultX2 = 0, resultY1 = 0, resultY2 = 0; // results
-		double p1, p2, q1, c1, c2, k1, k2, k3; // temps
+		double p1, q1, c1, c2, k1, k2, k3; 
 		// check for special cases:
 		if ( (y1 == y2) && (x2 != x1) ) { // x values identical
 			resultX1 = x1 + (r1 * r1 - r2 * r2 + x2 * x2 + x1 * x1 - 2 * x1 * x2) / (2 * x2 - 2 * x1);

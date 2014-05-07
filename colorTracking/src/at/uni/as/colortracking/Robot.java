@@ -1,23 +1,20 @@
 package at.uni.as.colortracking;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
 import java.util.Random;
 import java.util.Stack;
 
+import jp.ksksue.driver.serial.FTDriver;
+
 import org.opencv.core.Point;
 
-import jp.ksksue.driver.serial.FTDriver;
 import android.annotation.SuppressLint;
-import android.util.Pair;
 import android.view.View;
 
 @SuppressLint("UseValueOf")
 public class Robot{
 	@SuppressWarnings("unused")
 	private String TAG = "iRobot";
+	private static Double CATCH_DIST = 25.0;
 	private FTDriver com;
 	private Point position = null;
 	private Stack<Command> history = new Stack<Robot.Command>();
@@ -25,6 +22,8 @@ public class Robot{
 	private TrackedObject catchObject = null;
 	private Double catchObjectDistCurrent = null;
 	private Double catchObjectDistOld = null;
+	
+	private boolean catchObjectFlag = false;
 
 	public Robot() {
 	}
@@ -161,21 +160,21 @@ public class Robot{
 	}
 
 	// fixed position for bar (low)
-	public void barDown(View v) {
+	public void barDown() {
 		setBar((byte) 0);
 	}
 
 	// fixed position for bar (high)
-	public void barUp(View v) {
+	public void barUp() {
 		setBar((byte) 255);
 	}
 
-	public void ledOn(View v) {
+	public void ledOn() {
 		// logText(comReadWrite(new byte[] { 'r', '\r', '\n' }));
 		setLed((byte) 255, (byte) 128);
 	}
 
-	public void ledOff(View v) {
+	public void ledOff() {
 		// logText(comReadWrite(new byte[] { 'e', '\r', '\n' }));
 		setLed((byte) 0, (byte) 0);
 	}
@@ -193,28 +192,17 @@ public class Robot{
 	}
 	
 	@SuppressLint("UseValueOf")
-	public void setCatchObject(List<TrackedObject> catchObjects) {
-		if(catchObjects == null || catchObjects.size() == 0)
+	public void setCatchObject(TrackedObject obj) {
+		if(obj == null || obj.getTrackCount() > 1)
+			return;
+		if(obj.getTrack(0).getDist() == null || obj.getTrack(0).getDist().get(0) == null || obj.getTrack(0).getDist().get(0).second == null)
 			return;
 		
-		Map<Pair<Point, Double>, TrackedObject> nearestObjects = new HashMap<Pair<Point,Double>, TrackedObject>();
-		for(TrackedObject t : catchObjects) {
-			nearestObjects.put(t.getCoherentDistanceNearest(), t);
-		}
+		this.catchObjectDistCurrent = obj.getTrack(0).getDist().get(0).second;
+		this.catchObjectDistOld = new Double(obj.getTrack(0).getDist().get(0).second);
+		this.catchObject = obj;
 		
-		List<Pair<Point, Double>> dists = new ArrayList<Pair<Point,Double>>(nearestObjects.keySet());
-		if(dists.size() == 0)
-			return;
-		
-		Pair<Point, Double> nearest = dists.get(0);
-		for(Pair<Point, Double> d : dists) {
-			if(d.second < nearest.second)
-				nearest = d;
-		}
-	
-		this.catchObjectDistCurrent = nearest.second;
-		this.catchObjectDistOld = new Double(nearest.second.doubleValue());
-		this.catchObject = nearestObjects.get(nearest);
+		//ledOn();
 	}
 	
 	public TrackedObject getCatchObject() {
@@ -222,12 +210,20 @@ public class Robot{
 	}
 	
 	public boolean isInCatchMode() {
-		return catchObjectDistOld == null && catchObjectDistCurrent == null;
+		return catchObjectDistOld != null && catchObjectDistCurrent != null && catchObject != null;
 	}
 	
 	public void catchObject() {
-		if(!isInCatchMode() || !isConnected())
+		//if(!isInCatchMode() || !isConnected())
+		if(!isInCatchMode())
 			return;
+		if(catchObject.getTrack(0).getDist() == null || catchObject.getTrack(0).getDist().get(0) == null || catchObject.getTrack(0).getDist().get(0).second == null)
+			return;
+		
+		Double catchObjectDistCurrent = catchObject.getTrack(0).getDist().get(0).second;
+		
+		if(catchObjectDistCurrent == null)
+			return; 
 		
 		if(catchObjectDistCurrent == -1) {
 			if(history.isEmpty()) {
@@ -237,19 +233,34 @@ public class Robot{
 				undoCommand(history.pop());
 			}
 		} else {
-			if(catchObjectDistCurrent < catchObjectDistOld) {
-				doCommand(history.peek());
-				history.push(history.peek());
+			if(catchObjectDistCurrent < CATCH_DIST) {
+				barDown();
+				catchObjectFlag = false;
+			} else if(catchObjectDistCurrent <= catchObjectDistOld) {
+				Command c = null;
+				if(!history.isEmpty())
+					c = history.peek();
+				else 
+					c = getRandomCommand();
+				doCommand(c);
+				history.push(c);
 				
 				catchObjectDistOld = new Double(catchObjectDistCurrent.doubleValue());
 			} else {
-				Command c;
+				Command c = null;
 				do {
 					c = getRandomCommand();
-				} while(c == history.peek());
+				} while(!history.isEmpty() && c == history.peek());
 				
-				doCommand(c);
-				history.push(c);
+				if(c != null) {
+					doCommand(c);
+					history.push(c);
+				} else {
+					catchObjectDistCurrent = null;
+					catchObjectDistOld = null;
+					catchObject = null;
+				}
+				
 			}
 		}
 	}
@@ -267,6 +278,7 @@ public class Robot{
 			case BACKWARD: moveBackward();break;
 			case LEFT: turnLeft();break;
 			case RIGHT: turnRight();break;
+			default: moveForward();
 		}
 	}
 
@@ -278,6 +290,15 @@ public class Robot{
 			case RIGHT: turnLeft();break;
 		}
 	}
+	
+	public boolean isCatchObjectEnabled() {
+		return catchObjectFlag;
+	}
+
+	public void setCatchObjectEnabled(boolean catchObjectFlag) {
+		this.catchObjectFlag = catchObjectFlag;
+	}
+
 
 	public enum Command {
 		FORWARD,
