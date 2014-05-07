@@ -14,8 +14,8 @@
       as the default behavior is then an ActionBar and the options button disappears.
       Fix would be to switch to minSdkVersion=11 and set android:theme="@android:style/Theme.Holo.Light", 
       but not necessary for now as it screws up the design. -->
-    <uses-sdk android:minSdkVersion="8"
-        	  android:targetSdkVersion="11" />
+    <uses-sdk android:minSdkVersion="16"
+        	  android:targetSdkVersion="19" />
     
     <uses-permission android:name="android.permission.CAMERA"/>
     
@@ -23,11 +23,12 @@
     <uses-feature android:name="android.hardware.camera.autofocus" android:required="false"/>
     <uses-feature android:name="android.hardware.camera.front" android:required="false"/>
     <uses-feature android:name="android.hardware.camera.front.autofocus" android:required="false"/>
+    <uses-feature android:name="android.hardware.usb.host" android:required="true" />
     
     <application
         android:label="@string/app_name"
         android:icon="@drawable/icon"
-        android:theme="@android:style/Theme.NoTitleBar.Fullscreen"
+        android:theme="@android:style/Theme.Holo.Light"
         android:allowBackup="false" >
 
         <activity android:name="MainActivity"

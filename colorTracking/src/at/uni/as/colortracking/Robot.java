@@ -8,6 +8,7 @@ import jp.ksksue.driver.serial.FTDriver;
 import org.opencv.core.Point;
 
 import android.annotation.SuppressLint;
+import android.util.Log;
 import android.view.View;
 
 @SuppressLint("UseValueOf")
@@ -30,8 +31,8 @@ public class Robot{
 	
 	public Robot(FTDriver com) {
 		this();
-		
-		connect(com);
+		this.com = com;
+		connect();
 	}
 	
 	public Robot(FTDriver com, Point position) {
@@ -39,16 +40,12 @@ public class Robot{
 		this.position = position;
 	}
 
-	public boolean connect(FTDriver com) {
-		if(com == null)
-			return false;
-		
-		if (com.begin(9600)) {
-			this.com = com;
-			return true;
-		}
+	public void connect() {
+		if( com.begin( FTDriver.BAUD9600 ) )
+			Log.d( "connect", "connected" );
+		else
+			Log.d( "connect", "not connected" );
 
-		return false;
 	}
 
 	public void disconnect() {
@@ -102,6 +99,8 @@ public class Robot{
 	 * @return answer from serial interface
 	 */
 	public String comReadWrite(byte[] data) {
+		if( com != null )
+			Log.d( "comNull", "com is not null" );
 		com.write(data);
 		try {
 			Thread.sleep(100);
@@ -195,14 +194,12 @@ public class Robot{
 	public void setCatchObject(TrackedObject obj) {
 		if(obj == null || obj.getTrackCount() > 1)
 			return;
-		if(obj.getTrack(0).getDist() == null || obj.getTrack(0).getDist().get(0) == null || obj.getTrack(0).getDist().get(0).second == null)
+		if(obj.getTrack(0).getDist() == null || obj.getTrack(0).getDist().size() == 0 || obj.getTrack(0).getDist().get(0).second == null)
 			return;
 		
 		this.catchObjectDistCurrent = obj.getTrack(0).getDist().get(0).second;
 		this.catchObjectDistOld = new Double(obj.getTrack(0).getDist().get(0).second);
 		this.catchObject = obj;
-		
-		//ledOn();
 	}
 	
 	public TrackedObject getCatchObject() {
@@ -215,24 +212,46 @@ public class Robot{
 	
 	public void catchObject() {
 		//if(!isInCatchMode() || !isConnected())
-		if(!isInCatchMode())
-			return;
-		if(catchObject.getTrack(0).getDist() == null || catchObject.getTrack(0).getDist().get(0) == null || catchObject.getTrack(0).getDist().get(0).second == null)
+		
+		if( catchObject == null )
+		{
+			if(history.isEmpty()) {
+				Command c = null;
+				if(!history.isEmpty())
+					c = history.peek();
+				else 
+					c = getRandomCommand();
+				doCommand(c);
+				history.push(c);
+				stopRobot();
+				try {
+					Thread.sleep( 1000 );
+				} catch ( InterruptedException e ) {
+					//ignore
+				}
+				catchObjectDistCurrent = null;
+				catchObjectDistOld = null;
+			} else {
+				undoCommand(history.pop());
+				stopRobot();
+				try {
+					Thread.sleep( 1000 );
+				} catch ( InterruptedException e ) {
+					//ignore
+				}
+			}
+		}
+			
+		if(catchObject == null || catchObject.getTrack(0).getDist() == null 
+				|| catchObject.getTrack(0).getDist().size() == 0 
+				|| catchObject.getTrack(0).getDist().get(0).second == null)
 			return;
 		
 		Double catchObjectDistCurrent = catchObject.getTrack(0).getDist().get(0).second;
 		
 		if(catchObjectDistCurrent == null)
 			return; 
-		
-		if(catchObjectDistCurrent == -1) {
-			if(history.isEmpty()) {
-				catchObjectDistCurrent = null;
-				catchObjectDistOld = null;
-			} else {
-				undoCommand(history.pop());
-			}
-		} else {
+
 			if(catchObjectDistCurrent < CATCH_DIST) {
 				barDown();
 				catchObjectFlag = false;
@@ -244,8 +263,14 @@ public class Robot{
 					c = getRandomCommand();
 				doCommand(c);
 				history.push(c);
+				stopRobot();
+				try {
+					Thread.sleep( 1000 );
+				} catch ( InterruptedException e ) {
+					//ignore
+				}
 				
-				catchObjectDistOld = new Double(catchObjectDistCurrent.doubleValue());
+ 				catchObjectDistOld = new Double(catchObjectDistCurrent.doubleValue());
 			} else {
 				Command c = null;
 				do {
@@ -255,6 +280,12 @@ public class Robot{
 				if(c != null) {
 					doCommand(c);
 					history.push(c);
+					stopRobot();
+					try {
+						Thread.sleep( 1000 );
+					} catch ( InterruptedException e ) {
+						//ignore
+					}
 				} else {
 					catchObjectDistCurrent = null;
 					catchObjectDistOld = null;
@@ -262,7 +293,17 @@ public class Robot{
 				}
 				
 			}
+	}
+	
+	private void stopRobot()
+	{
+		try{
+			Thread.sleep( 1000 );
+		} catch( InterruptedException e )
+		{
+			//ignore
 		}
+		stop();
 	}
 	
 	private Command getRandomCommand() {
