@@ -17,7 +17,7 @@ import org.opencv.core.Size;
 import org.opencv.imgproc.Imgproc;
 
 public class ColorTrackingUtil {
-	private static final int BLUR_FACTOR = 41; // needs to be odd
+	private static final int BLUR_FACTOR = 3; // needs to be odd
 	public static int CONTOUR_SIZE_MIN = 400;
 	public static int FOREGROUND_TOLERANCE_H = 25;
 	public static int FOREGROUND_TOLERANCE_S = 50;
@@ -97,13 +97,12 @@ public class ColorTrackingUtil {
 	 */
 	public static ArrayList<Mat> convertRGB2RG(Mat image) {
 		ArrayList<Mat> splitImages = new ArrayList<Mat>();
-
-		Core.split(image, splitImages);// splitting image into 3 channels
 		Mat chR = new MatOfFloat();
 		Mat chG = new MatOfFloat();
 		Mat chB = new MatOfFloat();
 
 		// channels of picture
+		Core.split(image, splitImages);// splitting image into 3 channels
 		chR = (Mat) splitImages.get(0);
 		chG = (Mat) splitImages.get(1);
 		chB = (Mat) splitImages.get(2);
@@ -122,12 +121,17 @@ public class ColorTrackingUtil {
 
 		Core.divide(chR, mSum, chR, CvType.CV_64F);
 		Core.divide(chG, mSum, chG, CvType.CV_64F);
-		Core.divide(chB, mSum, chB, CvType.CV_64F);
 
 		ArrayList<Mat> mv = new ArrayList<Mat>();
 		mv.add(0, (Mat) chR);
 		mv.add(1, (Mat) chG);
 
+		//free memory
+		chB.release();
+		r.release();
+		g.release();
+		b.release();
+		
 		return mv;
 	}
 
@@ -315,7 +319,7 @@ public class ColorTrackingUtil {
 		Mat copy = img.clone();
 
 		Imgproc.erode(copy, copy, new Mat());
-		Imgproc.dilate(copy, copy, new Mat());
+		//Imgproc.dilate(copy, copy, new Mat());
 		Imgproc.medianBlur(copy, copy, BLUR_FACTOR);
 
 		return copy;
@@ -338,7 +342,6 @@ public class ColorTrackingUtil {
 	}
 
 	public static boolean hasCoordFormat(String value) {
-		
 		try {
 			String[] vals = value.split(":");
 			if (vals.length != 2)

@@ -228,7 +228,9 @@ public class ColorTracking {
 			if(rec.area() > max && rec.area() > SEGMENT_AREA_MIN) {
 				max = rec.area();
 				maxRec = rec;
-			}
+			} 
+			
+			p.release();
 		}
 		
 		if(maxRec == null)
