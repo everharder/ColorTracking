@@ -102,7 +102,6 @@ public class MainActivity extends Activity implements CvCameraViewListener2,
 		mOpenCvCameraView.setCvCameraViewListener(this);
 		mOpenCvCameraView.setOnTouchListener(this);
 		
-		getActionBar().hide();
 	}
 
 	@Override
