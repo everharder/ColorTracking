@@ -11,6 +11,10 @@ import at.uni.as.colortracking.tracking.TrackedObject;
 public class RobotEnviroment {
 	private static final double MIN_X = 0;
 	private static final double MAX_X = 150;
+	private static final double MIN_Y = 0;
+	private static final double MAX_Y = 150;
+	private static final double HALFWAY_Y = 75;
+	private static final double HALFWAY_X = 75;
 
 	public RobotEnviroment() {
 	}
@@ -36,27 +40,90 @@ public class RobotEnviroment {
 
 			if (d0 == null || d1 == null || p0 == null || p1 == null)
 				return null;
+			
+			// check if beacons are in correct order for calculation
+			// TODO: clean up this code, by putting it into a separate function and create a wrapper class to be 
+			// 		 able to change values as it looks horrible
+			//
+			if( p0.y == MIN_Y && p1.y == MIN_Y )
+				if( ( p1.x > p0.x ) )
+				{
+					Pair<Point, Double> temp_d = d0;
+					d0 = d1;
+					d1 = temp_d;
+					
+					Point temp_p = p0;
+					p0 = p1;
+					p1 = temp_p;
+				}
+			else if( p0.x == MIN_X && p1.x == MIN_X )
+				if( p0.y > p1.y )
+					{
+					Pair<Point, Double> temp_d = d0;
+					d0 = d1;
+					d1 = temp_d;
+					
+					Point temp_p = p0;
+					p0 = p1;
+					p1 = temp_p;
+					}
+			else if( p0.y == MAX_Y && p1.y == MAX_Y )
+				if( p0.x > p1.x )
+					{
+					Pair<Point, Double> temp_d = d0;
+					d0 = d1;
+					d1 = temp_d;
+					
+					Point temp_p = p0;
+					p0 = p1;
+					p1 = temp_p;
+					}
+			else if( p0.x == MAX_X && p1.x == MAX_X )
+				if( p1.y > p0.y )
+					{
+					Pair<Point, Double> temp_d = d0;
+					d0 = d1;
+					d1 = temp_d;
+					
+					Point temp_p = p0;
+					p0 = p1;
+					p1 = temp_p;
+					}
+			
+			
+			double beta = Math.acos( -(Math.pow(d1.second, 2) - Math.pow(d0.second, 2) - 75  )/(2*d0.second*75) );
+			double lc = Math.sin( beta ) * d0.second;
+			double la = Math.cos( beta ) * d0.second;
 
-			// Determine intersection of two circles.
-			List<Point> intersects = CircleCut.circleIntersect(d0.second,
-					d1.second, p0, p1);
-			// Determine middle point of intersection.
-			Point m = new Point(
-					(intersects.get(0).x + intersects.get(1).x) / 2,
-					(intersects.get(0).y + intersects.get(1).y) / 2);
-			// Determine distance between beacon and Point m.
-			double lb = Math.sqrt(Math.pow(Math.abs(m.x - p0.x), 2)
-					+ Math.pow(Math.abs(m.y - p0.y), 2));
-			// Determine distance between robot and Point m.
-			double lr = Math.sqrt(Math.pow(d0.second, 2) - Math.pow(lb, 2));
-
-			// Case LEFT or RIGHT
-			if ((p0.x == MIN_X && p1.x == MIN_X)
-					|| (p0.x == MAX_X && p1.x == MAX_X))
-				robot = new Point(Math.abs(m.x - lr), m.y);
-			// Case UP or DOWN
-			else
-				robot = new Point(m.x, Math.abs(m.y - lr));
+			// Different Cases
+			if( p0.x == MIN_X && p1.x == MIN_X )
+			{
+				if( ( p0.y == MIN_Y && p1.y == HALFWAY_Y ) || ( p0.y == MIN_Y && p1.y == MAX_Y ) ) // beacons( 0:0,0:75 ) or beacons( 0:0, 0:150 )
+					robot = new Point( lc, la );
+				else if( p0.y == HALFWAY_Y && p1.y == MAX_Y ) // left beacon is 0:75, right one is 0:150
+					robot = new Point( lc, HALFWAY_Y + la );
+			}
+			else if( p0.x == MAX_X && p1.x == MAX_X )
+			{
+				if( p0.y == HALFWAY_Y && p1.y == MIN_Y ) // left beacon is 150:75, right one is 150:0
+					robot = new Point( MAX_X - lc, HALFWAY_Y - la );   
+				else if( ( p0.y == MAX_Y && p1.y == HALFWAY_Y ) || ( p0.y == MAX_Y && p1.y == MIN_Y ) ) // beacons( 150:150,150:75 ) or beacons( 150:150, 150:0 )
+					robot = new Point( MAX_X - lc, MAX_Y - la );
+			}
+			else if( p0.y == MIN_Y && p1.y == MIN_Y )
+			{
+				if( ( p0.x == MAX_X && p1.x == HALFWAY_X ) || ( p0.x == MAX_X && p1.x == MIN_X ) ) // beacons( 150:0,75:0 ) or beacons( 150:0, 0:0 )
+					robot = new Point( MAX_X - la, lc ); 
+				else if( p0.x == HALFWAY_X && p1.x == MIN_X ) // left beacon is 75:0, right one is 0:0
+					robot = new Point( HALFWAY_X - la, lc ); 
+			}
+			else if( p0.y == MAX_Y && p1.y == MAX_Y )
+			{ 
+				if( ( p0.x == MIN_X && p1.x == HALFWAY_X ) || ( p0.x == MIN_X && p1.x == MAX_X ) ) // beacons( 0:150,75:150 ) or beacons( 0:150, 150:150 )
+					robot = new Point( la, MAX_Y - lc ); 
+				else if( p0.x == HALFWAY_X && p1.x == MAX_X )
+					robot = new Point( HALFWAY_X + la, MAX_Y - lc ); // left beacon is 75:150, right one is 150:150
+			}
 		}
 
 		return robot;
