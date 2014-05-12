@@ -17,7 +17,7 @@ import org.opencv.core.Size;
 import org.opencv.imgproc.Imgproc;
 
 public class ColorTrackingUtil {
-	private static final int BLUR_FACTOR = 3; // needs to be odd
+	private static final int BLUR_FACTOR = 1; // needs to be odd
 	public static int CONTOUR_SIZE_MIN = 400;
 	public static int FOREGROUND_TOLERANCE_H = 25;
 	public static int FOREGROUND_TOLERANCE_S = 50;

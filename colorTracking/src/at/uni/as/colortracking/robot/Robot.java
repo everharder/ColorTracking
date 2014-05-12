@@ -21,13 +21,14 @@ public class Robot{
 	private String TAG = "iRobot";
 	
 	private static Double CATCH_DIST = 25.0;
-	private static int DEFAULT_VELOCITY = 30;
+	private static int DEFAULT_VELOCITY = 20;
 	private static int DEFAULT_MOVE_TIME = 1000; //ms
 	
 	
 	
 	private FTDriver com;
 	private Point position = null;
+	private Point lastPos = null;
 	private Stack<Command> history = new Stack<Robot.Command>();
 	
 	private TrackedObject catchObject = null;
@@ -333,11 +334,43 @@ public class Robot{
 	}
 	
 	public void moveToCoords(){
-		if(!moveToCoordFlag || moveToCoords == null || moveToCoords.size() == 0 || position == null)
+		if(!moveToCoordFlag || moveToCoords == null || moveToCoords.size() == 0 || position == null) {
+			moveToCoordFlag = false;
 			return;
+		}
 		
-		if(targetDistOld == null) {
+		Point target = moveToCoords.get(moveToCoords.size() - 1);
+		
+		if(Math.abs(position.x - target.x) < CATCH_DIST) {
+			if(Math.abs(position.y - target.y) < CATCH_DIST) {
+				moveToCoords.remove(target);
+				
+				barDown();
+				try {
+					Thread.sleep(1000);
+				} catch (InterruptedException e) {
+				}
+				
+				barUp();
+			} else {
+				Command c = getRandomCommand();
+				
+				if(Math.abs(position.x - target.x) < Math.abs(lastPos.x - target.x) && !history.isEmpty()) {
+					c = history.peek();
+				} 
+				
+				doCommand(c, DEFAULT_VELOCITY, DEFAULT_MOVE_TIME);
+				history.push(c);
+			}
+		} else {
+			Command c = getRandomCommand();
 			
+			if(Math.abs(position.y - target.y) < Math.abs(lastPos.y - target.y) && !history.isEmpty()) {
+				c = history.peek();
+			} 
+			
+			doCommand(c, DEFAULT_VELOCITY, DEFAULT_MOVE_TIME);
+			history.push(c);
 		}
 	}
 	
@@ -410,6 +443,9 @@ public class Robot{
 		moveToCoordFlag = true;
 		targetDistCur = null;
 		targetDistOld = null;
+		
+		if(position != null)
+			lastPos = position.clone();
 	}
 
 
