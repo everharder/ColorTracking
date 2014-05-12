@@ -20,6 +20,7 @@ import android.app.AlertDialog;
 import android.app.AlertDialog.Builder;
 import android.content.DialogInterface;
 import android.content.res.Resources.NotFoundException;
+import android.hardware.Camera.Parameters;
 import android.hardware.usb.UsbManager;
 import android.os.Bundle;
 import android.util.Log;
@@ -234,21 +235,17 @@ public class MainActivity extends Activity implements CvCameraViewListener2,
 		
 		trackSingle = new ColorTracking();
 		trackBeacon = new ColorTracking();
-		robot = new Robot(new FTDriver(
-				(UsbManager) getSystemService(USB_SERVICE)));
-		if (!robot.isConnected())
-			Toast.makeText(getApplicationContext(),
-					"unable to connect to robot!", Toast.LENGTH_SHORT).show();
 		enviroment = new RobotEnviroment();
-
-		if (robot.isConnected()) {
-			robot.ledOn();
-			robot.ledOff();
-			robot.barDown();
-			robot.barUp();
-			robot.moveForward(15, 500);
-			robot.stop();
+		robot = new Robot(new FTDriver((UsbManager) getSystemService(USB_SERVICE)));
+		if (!robot.isConnected())
+			Toast.makeText(getApplicationContext(),"unable to connect to robot!", Toast.LENGTH_SHORT).show();
+		else {
+			robot.moveForward(15, 250);
+			robot.moveBackward(15, 250);
 		}
+		
+		mOpenCvCameraView.setMaxFrameSize(50, 50);
+        mOpenCvCameraView.enableFpsMeter();
 	}
 
 	public void onCameraViewStopped() {

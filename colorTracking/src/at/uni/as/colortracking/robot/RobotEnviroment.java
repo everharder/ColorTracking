@@ -10,12 +10,12 @@ import android.util.Pair;
 import at.uni.as.colortracking.tracking.TrackedObject;
 
 public class RobotEnviroment {
-	private static final double MIN_X = 0;
-	private static final double MAX_X = 100;
-	private static final double MIN_Y = 0;
-	private static final double MAX_Y = 100;
-	private static final double HALFWAY_Y = 50;
-	private static final double HALFWAY_X = 50;
+	public static final double MIN_X = 0;
+	public static final double MAX_X = 100;
+	public static final double MIN_Y = 0;
+	public static final double MAX_Y = 100;
+	public static final double HALFWAY_Y = 50;
+	public static final double HALFWAY_X = 50;
 
 	public RobotEnviroment() {
 	}
