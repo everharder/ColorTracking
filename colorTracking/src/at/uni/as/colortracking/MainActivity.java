@@ -1,5 +1,7 @@
 package at.uni.as.colortracking;
 
+import java.text.DecimalFormat;
+
 import jp.ksksue.driver.serial.FTDriver;
 
 import org.opencv.android.BaseLoaderCallback;
@@ -264,23 +266,15 @@ public class MainActivity extends Activity implements CvCameraViewListener2,
 
 			if (robot != null && (trackSingle.getTrackingActive() || trackBeacon.getTrackingActive())) {
 				if (trackBeacon.isHomographyEnabled()) {
-					Point robotPos = enviroment.locate(trackBeacon
-							.getTrackedObjects());
+					robot.setPosition(enviroment.locate(trackBeacon
+							.getTrackedObjects()));
 					
-					if(robotPos != null) {
-						robot.setPosition(robotPos); 
-					} else {
-						//robot.turnLeft(Robot.DEFAULT_VELOCITY, 250);
-					}
+					
 
 					if (robot.isConnected()) {
 						if (robot.isMoveToCoordsEnabled()) {
 							if (robot.getPosition() != null)
 								robot.moveToCoords();
-							else
-								Toast.makeText(getApplicationContext(),
-										"Failed locate Robot!",
-										Toast.LENGTH_SHORT).show();
 						} else if (robot.isCatchObjectEnabled()) {
 							// add new catch target if not already set
 							if (!robot.isCatchObjectSet())
@@ -296,10 +290,10 @@ public class MainActivity extends Activity implements CvCameraViewListener2,
 						Core.putText(
 								image,
 								"robot: "
-										+ String.valueOf(robot.getPosition().x)
+										+ String.valueOf( DecimalFormat.getIntegerInstance().format(robot.getPosition().x))
 										+ ","
-										+ String.valueOf(robot.getPosition().y),
-								new Point(RES_DISP_H, RES_DISP_W),
+										+ String.valueOf( DecimalFormat.getIntegerInstance().format(robot.getPosition().y)),
+								new Point(RES_DISP_H / 2, RES_DISP_W / 2),
 								Core.FONT_HERSHEY_SIMPLEX, 0.75, new Scalar(
 										50.0));
 					}

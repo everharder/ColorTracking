@@ -24,7 +24,7 @@ public class ColorTracking {
 	private static final float BACKPROJ_THRESH_MIN = 1;
 	private static final float BACKPROJ_THRESH_STP = 1;
 	private static final float BACKPROJ_SCALE = 15;
-	private static final float SEGMENT_AREA_MIN = 50;
+	private static final float SEGMENT_AREA_MIN = 25;
 
 	private Mat homography = null;
 	private List<TrackedObject> trackedObjects = null;
@@ -252,7 +252,7 @@ public class ColorTracking {
 		Mat src = new Mat(1, 1, CvType.CV_32FC2);
 		Mat dst = new Mat(1, 1, CvType.CV_32FC2);
 
-		src.put(0, 0, new double[] { p.y, p.x });
+		src.put(0, 0, new double[] { p.x, p.y });
 
 		// Multiply homography matrix with bottom point.
 		Core.perspectiveTransform(src, dst, homography);

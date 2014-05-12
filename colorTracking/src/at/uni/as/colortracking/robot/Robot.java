@@ -22,7 +22,7 @@ public class Robot{
 	
 	private static Double CATCH_DIST = 25.0;
 	public static int DEFAULT_VELOCITY = 15;
-	public static int DEFAULT_MOVE_TIME = 1000; //ms
+	public static int DEFAULT_MOVE_TIME = 250; //ms
 	
 	private FTDriver com;
 	private Point position = null;
@@ -334,7 +334,7 @@ public class Robot{
 	}
 	
 	public void moveToCoords(){
-		if(!moveToCoordFlag || position == null) 
+		if(!moveToCoordFlag) 
 			return;
 		if(moveToCoords == null || moveToCoords.size() == 0) {
 			moveToCoordFlag = false;
@@ -343,7 +343,9 @@ public class Robot{
 		
 		Point target = moveToCoords.get(moveToCoords.size() - 1);
 		
-		if(Math.abs(position.x - target.x) < CATCH_DIST && Math.abs(position.y - target.y) < CATCH_DIST) {
+		if(position == null) {
+			turnLeft(Robot.DEFAULT_VELOCITY, Robot.DEFAULT_MOVE_TIME);
+		} else if(Math.abs(position.x - target.x) < 5 && Math.abs(position.y - target.y) < 5) {
 			moveToCoords.remove(target);
 			
 			barDown();

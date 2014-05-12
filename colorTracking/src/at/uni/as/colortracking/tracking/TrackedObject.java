@@ -38,8 +38,8 @@ public class TrackedObject {
 			
 			for(Pair<Point, Double> u : colors.get(0).getDist()) {
 				for(Pair<Point, Double> v : colors.get(1).getDist()) {
-					if(v.first.y > u.first.y) {
-						dists.add(u);
+					if(v.first.x > u.first.x) {
+						dists.add(v);
 					}
 				}
 			}
@@ -64,6 +64,7 @@ public class TrackedObject {
 		
 		return min;
 	}
+	
 	
 	public Point getCoords() {
 		if(coords != null)

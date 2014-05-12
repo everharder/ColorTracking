@@ -5,16 +5,17 @@ import java.util.List;
 
 import org.opencv.core.Point;
 
+import android.util.Log;
 import android.util.Pair;
 import at.uni.as.colortracking.tracking.TrackedObject;
 
 public class RobotEnviroment {
 	private static final double MIN_X = 0;
-	private static final double MAX_X = 150;
+	private static final double MAX_X = 100;
 	private static final double MIN_Y = 0;
-	private static final double MAX_Y = 150;
-	private static final double HALFWAY_Y = 75;
-	private static final double HALFWAY_X = 75;
+	private static final double MAX_Y = 100;
+	private static final double HALFWAY_Y = 50;
+	private static final double HALFWAY_X = 50;
 
 	public RobotEnviroment() {
 	}
@@ -24,6 +25,9 @@ public class RobotEnviroment {
 		List<TrackedObject> beacons = new ArrayList<TrackedObject>();
 
 		// Get all beacons (objects with 2 tracked colors).
+		if(tracks == null)
+			return null;
+		
 		for (TrackedObject t : tracks)
 			if (t.getTrackCount() == 2)
 				beacons.add(t);
@@ -38,7 +42,7 @@ public class RobotEnviroment {
 			Point p0 = beacons.get(0).getCoords();
 			Point p1 = beacons.get(1).getCoords();
 
-			if (d0 == null || d1 == null || p0 == null || p1 == null)
+			if (d0 == null || d0.second == null || d1 == null || d1.second == null || p0 == null || p1 == null)
 				return null;
 			
 			// check if beacons are in correct order for calculation
@@ -90,8 +94,9 @@ public class RobotEnviroment {
 					p1 = temp_p;
 					}
 			
+			Log.d("blub", "reacgeh calcuation");
 			
-			double beta = Math.acos( -(Math.pow(d1.second, 2) - Math.pow(d0.second, 2) - 75  )/(2*d0.second*75) );
+			double beta = Math.acos( -(Math.pow(d1.second, 2) - Math.pow(d0.second, 2) - Math.pow(HALFWAY_X,2)  )/(2*d0.second*HALFWAY_X) );
 			double lc = Math.sin( beta ) * d0.second;
 			double la = Math.cos( beta ) * d0.second;
 
