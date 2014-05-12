@@ -1,13 +1,13 @@
 package at.uni.as.colortracking.tracking;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import org.opencv.calib3d.Calib3d;
 import org.opencv.core.Core;
-import org.opencv.core.CvType;
 import org.opencv.core.Mat;
-import org.opencv.core.MatOfFloat;
 import org.opencv.core.MatOfPoint;
 import org.opencv.core.MatOfPoint2f;
 import org.opencv.core.Point;
@@ -22,6 +22,10 @@ public class ColorTrackingUtil {
 	public static int FOREGROUND_TOLERANCE_H = 25;
 	public static int FOREGROUND_TOLERANCE_S = 50;
 	public static int FOREGROUND_TOLERANCE_V = 50;
+	
+    public static final Scalar DEFAULT_TOL_HSV = new Scalar(5, 40, 40);
+	private static final double DETECTION_AREA_MIN = 25;
+	private static final int TRACKED_RECT_THICKNESS = 3;
 
 	/**
 	 * Returns the homography matrix of the image.
@@ -86,113 +90,6 @@ public class ColorTrackingUtil {
 		mCornersBuffer.clear();
 
 		return homography;
-	}
-
-	/**
-	 * Converts an image from RGB format to RG format with separated channels.
-	 * 
-	 * @param image
-	 *            Image in RGB format.
-	 * @return Image with separated channels R and G.
-	 */
-	public static ArrayList<Mat> convertRGB2RG(Mat image) {
-		ArrayList<Mat> splitImages = new ArrayList<Mat>();
-		Mat chR = new MatOfFloat();
-		Mat chG = new MatOfFloat();
-		Mat chB = new MatOfFloat();
-
-		// channels of picture
-		Core.split(image, splitImages);// splitting image into 3 channels
-		chR = (Mat) splitImages.get(0);
-		chG = (Mat) splitImages.get(1);
-		chB = (Mat) splitImages.get(2);
-
-		Mat r = new MatOfFloat();
-		Mat g = new MatOfFloat();
-		Mat b = new MatOfFloat();
-
-		Core.divide(chR, new Scalar(255.0), r, CvType.CV_64F);
-		Core.divide(chG, new Scalar(255.0), g, CvType.CV_64F);
-		Core.divide(chB, new Scalar(255.0), b, CvType.CV_64F);
-
-		Mat mSum = new MatOfFloat();
-		Core.add(r, g, mSum);
-		Core.add(mSum, b, mSum);
-
-		Core.divide(chR, mSum, chR, CvType.CV_64F);
-		Core.divide(chG, mSum, chG, CvType.CV_64F);
-
-		ArrayList<Mat> mv = new ArrayList<Mat>();
-		mv.add(0, (Mat) chR);
-		mv.add(1, (Mat) chG);
-
-		//free memory
-		chB.release();
-		r.release();
-		g.release();
-		b.release();
-		
-		return mv;
-	}
-
-	/**
-	 * Searches for the biggest contour(s) in the image.
-	 * 
-	 * @param mImg
-	 *            Image.
-	 * @return List of biggest contour(s).
-	 */
-	public static MatOfPoint getBiggestContour(Mat img) {
-		List<MatOfPoint> contours = getContours(img);
-
-		if (contours.size() == 0)
-			return null;
-
-		MatOfPoint biggest = getBiggestContour(contours, CONTOUR_SIZE_MIN);
-
-		// release memory
-		for (MatOfPoint c : contours)
-			if (c != biggest)
-				c.release();
-
-		return biggest;
-	}
-
-	public static MatOfPoint getBiggestContour(List<MatOfPoint> contours,
-			double minSize) {
-		double var = 0.5;
-		double maxArea = 0;
-
-		if(contours.size() == 0)
-			return null;
-		
-		MatOfPoint biggest = contours.get(0);
-		maxArea = Imgproc.contourArea(contours.get(0));
-		for (MatOfPoint c : contours) {
-			double area = Imgproc.contourArea(c);
-
-			if (area < minSize)
-				continue;
-
-			if (area > maxArea * (1 + var)) {
-				biggest = c;
-				maxArea = area;
-			}
-		}
-
-		return biggest;
-	}
-
-	public static List<MatOfPoint> getContours(Mat img) {
-		List<MatOfPoint> contours = new ArrayList<MatOfPoint>();
-		Mat clone = img.clone();
-
-		Imgproc.findContours(clone, contours, new Mat(), Imgproc.RETR_EXTERNAL,
-				Imgproc.CHAIN_APPROX_SIMPLE);
-
-		clone.release();
-
-		return contours;
 	}
 
 	/**
@@ -395,5 +292,80 @@ public class ColorTrackingUtil {
 		}
 		
 		return coordList;
+	}
+	
+	public static List<TrackedColor> detectColor(Mat img, Color color, Scalar tolerance) {
+		Mat imgRgb = null;
+		
+		if(img == null || tolerance == null)
+			return null;
+		
+		imgRgb = img.clone();
+		
+		
+		Mat imgHsv = new Mat();
+		Imgproc.cvtColor(imgRgb, imgHsv, Imgproc.COLOR_RGB2HSV_FULL);
+		
+		Scalar lowerBound = new Scalar(color.color().val[0] - tolerance.val[0], color.color().val[1] - tolerance.val[1], color.color().val[2] - tolerance.val[2]);
+		Scalar upperBound = new Scalar(color.color().val[0] + tolerance.val[0], color.color().val[1] + tolerance.val[1], color.color().val[2] + tolerance.val[2]);
+		
+		Mat imgBinary = new Mat();
+		Core.inRange(imgHsv, lowerBound, upperBound, imgBinary);
+		
+		List<MatOfPoint> contours = new ArrayList<MatOfPoint>();
+		Imgproc.dilate(imgBinary, imgBinary, new Mat());
+		Imgproc.findContours(imgBinary, contours, new Mat(), Imgproc.RETR_EXTERNAL, Imgproc.CHAIN_APPROX_SIMPLE);
+		
+		// fill blobs
+        List<TrackedColor> detected = new ArrayList<TrackedColor>();
+        for (MatOfPoint m : contours) {
+            Core.multiply(m, new Scalar(4, 4), m);
+            TrackedColor c = new TrackedColor(color, Imgproc.boundingRect(m));
+            if (c.getBorders().area() >= DETECTION_AREA_MIN)
+                detected.add(c);
+        }
+		
+		imgRgb.release();
+		imgHsv.release();
+		imgBinary.release();
+		
+		return detected;
+	}
+	
+	public static Map<Color, List<TrackedColor>> detectColors(Mat rgba) {
+		if(rgba == null)
+			return null;
+		
+		Mat rgb = new Mat();
+		Mat hsv = new Mat();
+		
+		Imgproc.cvtColor(rgba, rgb, Imgproc.COLOR_RGBA2RGB);
+		Imgproc.pyrDown(rgb, rgb);
+		Imgproc.pyrDown(rgb, rgb);
+		Imgproc.cvtColor(rgb, hsv, Imgproc.COLOR_RGB2HSV_FULL);
+		
+		Map<Color, List<TrackedColor>> detectedObjects = new HashMap<Color, List<TrackedColor>>();
+		for(Color c : Color.values()) {
+			List<TrackedColor> l = ColorTrackingUtil.detectColor(hsv, c, ColorTrackingUtil.DEFAULT_TOL_HSV);
+			
+			if(l != null && l.size() > 0)
+				detectedObjects.put(c, l);
+		}
+		
+		rgb.release();
+		hsv.release();
+		
+		return detectedObjects;
+	}
+
+	public static Mat drawTrackedColors(Mat image, Map<Color, List<TrackedColor>> trackedColors) {
+		for(Color c : trackedColors.keySet()) {
+			for(TrackedColor t : trackedColors.get(c)) {
+				Rect rect = t.getBorders();
+				Core.rectangle(image, new Point(rect.x, rect.y), new Point(rect.x + rect.width, rect.y + rect.height), c.color(), TRACKED_RECT_THICKNESS);
+			}
+		}
+		
+		return image;
 	}
 }

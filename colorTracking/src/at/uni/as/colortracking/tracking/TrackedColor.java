@@ -1,58 +1,59 @@
 package at.uni.as.colortracking.tracking;
 
-import java.util.ArrayList;
-import java.util.List;
-
+import org.opencv.core.Core;
+import org.opencv.core.CvType;
 import org.opencv.core.Mat;
 import org.opencv.core.Point;
-
-import android.util.Pair;
+import org.opencv.core.Rect;
 
 public class TrackedColor {
-	private double threshold = -1.0;
-	private List<Pair<Point, Double>> dist = new ArrayList<Pair<Point,Double>>();
-	private Mat probMap = null;
+	private Rect borders;
+	private Point bottom;
+	private Color color;
+	private double distance = -1;
 	
-	public TrackedColor(Mat probMap) {
-		this.probMap = probMap;
+	public TrackedColor(Color color, Rect borders) {
+		this.color = color;
+		this.borders = borders;
+		
+		if(borders != null)
+			bottom = new Point(borders.x + borders.width, borders.y + borders.height / 2);
 	}
 	
-	public double getThreshold() {
-		return threshold;
+	public Color getColor() {
+		return color;
 	}
 	
-	public void setThreshold(double threshold) {
-		this.threshold = threshold;
+	public Rect getBorders() {
+		return borders;
 	}
 	
-	public List<Pair<Point, Double>> getDist() {
-		return dist;
+	public Point getBottom() {
+		return bottom;
 	}
 	
-	public void addDist(Point bottom, Double dist) {
-		this.dist.add(new Pair<Point,Double>(bottom, dist));
+	public void setDistance(double distance) {
+		this.distance = distance;
 	}
 	
-	public void addBottom(Point bottom) {
-		this.dist.add(new Pair<Point,Double>(bottom, null));
+	public double getDistance() {
+		return distance;
 	}
 	
-	public Mat getProbMap() {
-		return probMap;
-	}
-	
-	public void setProbMap(Mat probMap) {
-		this.probMap = probMap;
-	}
-	
-	public void release() {
-		if(probMap != null)
-			probMap.release();
-	}
+	public void calcDistance(Mat homography) {
+		Mat src = new Mat(1, 1, CvType.CV_32FC2);
+		Mat dst = new Mat(1, 1, CvType.CV_32FC2);
 
-	public void addBottoms(List<Point> bottom) {
-		for(Point p : bottom) {
-			dist.add(new Pair<Point, Double>(p, null));
-		}
+		src.put(0, 0, new double[] { getBottom().x, getBottom().y });
+
+		// Multiply homography matrix with bottom point.
+		Core.perspectiveTransform(src, dst, homography);
+		// Real world point.
+		Point dest = new Point(dst.get(0, 0)[1], dst.get(0, 0)[0]);
+		// Calc distance with scalar product.
+		distance = Math.sqrt(Math.pow(dest.x, 2) + Math.pow(dest.y, 2));
+
+		src.release();
+		dst.release();
 	}
 }

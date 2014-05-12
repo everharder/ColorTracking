@@ -3,7 +3,7 @@ package at.uni.as.colortracking.tracking;
 import org.opencv.core.Point;
 import at.uni.as.colortracking.robot.RobotEnviroment;
 
-public enum Beacons {
+public enum Beacon {
 	BLUE_YELLOW	(Color.BLUE, 	Color.YELLOW, 	new Point(RobotEnviroment.MIN_X, RobotEnviroment.MAX_Y)),
 	BLUE_RED	(Color.BLUE, 	Color.RED, 		new Point(RobotEnviroment.HALFWAY_X, RobotEnviroment.MAX_Y)),
 	REDY_ELLOW	(Color.RED, 	Color.YELLOW, 	new Point(RobotEnviroment.MAX_X, RobotEnviroment.MAX_Y)),
@@ -17,7 +17,7 @@ public enum Beacons {
 	private final Color lowerColor;
 	private final Point coords;
 	
-	Beacons(Color upperColor, Color lowerColor, Point coords) {
+	Beacon(Color upperColor, Color lowerColor, Point coords) {
 		this.upperColor = upperColor;
 		this.lowerColor = lowerColor;
 		this.coords = coords;

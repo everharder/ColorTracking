@@ -13,7 +13,6 @@ import android.annotation.SuppressLint;
 import android.util.Log;
 import android.util.Pair;
 import android.view.View;
-import at.uni.as.colortracking.tracking.TrackedObject;
 
 @SuppressLint("UseValueOf")
 public class Robot{
@@ -29,7 +28,6 @@ public class Robot{
 	private Point lastPos = null;
 	private Stack<Command> history = new Stack<Robot.Command>();
 	
-	private TrackedObject catchObject = null;
 	private List<Point> moveToCoords = new ArrayList<Point>();
 	
 	private Double targetDistCur = null;
@@ -242,95 +240,6 @@ public class Robot{
 
 	public void setPosition(Point position) {
 		this.position = position;
-	}
-	
-	@SuppressLint("UseValueOf")
-	public void setCatchObject(TrackedObject obj) {
-		if(obj == null || obj.getTrackCount() > 1)
-			return;
-		if(obj.getTrack(0).getDist() == null || obj.getTrack(0).getDist().size() == 0 || obj.getTrack(0).getDist().get(0).second == null)
-			return;
-		
-		this.targetDistCur = obj.getTrack(0).getDist().get(0).second;
-		this.targetDistOld = new Double(obj.getTrack(0).getDist().get(0).second);
-		this.catchObject = obj;
-	}
-	
-	public TrackedObject getCatchObject() {
-		return catchObject;
-	}
-	
-	public boolean isCatchObjectSet() {
-		return targetDistOld != null && targetDistCur != null && catchObject != null;
-	}
-	
-	public void catchObject() {
-		if(!isCatchObjectEnabled() || !isConnected())
-			return;
-		
-		Pair<Point, Double> dist = catchObject.getCoherentDistanceNearest();
-		
-		if(dist == null || dist.second == null || dist.second < 0) {
-			if(history.isEmpty()) {
-				Command c = getRandomCommand();
-				doCommand(c, Robot.DEFAULT_VELOCITY, Robot.DEFAULT_MOVE_TIME);
-				history.push(c);
-				
-				try {
-					Thread.sleep( 1000 );
-				} catch ( InterruptedException e ) {
-					//ignore
-				}
-				
-				targetDistCur = null;
-				targetDistOld = null;
-			} else {
-				undoCommand(history.pop(), Robot.DEFAULT_VELOCITY, Robot.DEFAULT_MOVE_TIME);
-				try {
-					Thread.sleep( 1000 );
-				} catch ( InterruptedException e ) {
-					//ignore
-				}
-			}
-		} else {
-			targetDistOld = targetDistCur;	
-			targetDistCur = dist.second;
-
-			if(targetDistCur < CATCH_DIST) {
-				barDown();
-				catchObjectFlag = false;
-			} else if(targetDistCur <= targetDistOld) {
-				Command c = null;
-				
-				if(!history.isEmpty())
-					c = history.peek();
-				else 
-					c = getRandomCommand();
-				
-				doCommand(c, Robot.DEFAULT_VELOCITY, Robot.DEFAULT_MOVE_TIME);
-				history.push(c);
-			} else {
-				Command c = null;
-				do {
-					c = getRandomCommand();
-				} while(!history.isEmpty() && c == history.peek());
-			
-				if(c != null) {
-					doCommand(c);
-					history.push(c);
-
-					try {
-						Thread.sleep( 1000 );
-					} catch ( InterruptedException e ) {
-						//ignore
-					}
-				} else {
-					targetDistCur = null;
-					targetDistOld = null;
-					catchObject = null;
-				}
-			}
-		}
 	}
 	
 	public void moveToCoords(){
