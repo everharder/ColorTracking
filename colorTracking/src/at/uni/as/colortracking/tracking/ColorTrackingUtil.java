@@ -17,8 +17,8 @@ import org.opencv.core.Size;
 import org.opencv.imgproc.Imgproc;
 
 public class ColorTrackingUtil {
-	private static final int BLUR_FACTOR = 1; // needs to be odd
-	public static int CONTOUR_SIZE_MIN = 400;
+	private static final int BLUR_FACTOR = 5; // needs to be odd
+	public static int CONTOUR_SIZE_MIN = 50;
 	public static int FOREGROUND_TOLERANCE_H = 25;
 	public static int FOREGROUND_TOLERANCE_S = 50;
 	public static int FOREGROUND_TOLERANCE_V = 50;
@@ -163,7 +163,11 @@ public class ColorTrackingUtil {
 		double var = 0.5;
 		double maxArea = 0;
 
-		MatOfPoint biggest = null;
+		if(contours.size() == 0)
+			return null;
+		
+		MatOfPoint biggest = contours.get(0);
+		maxArea = Imgproc.contourArea(contours.get(0));
 		for (MatOfPoint c : contours) {
 			double area = Imgproc.contourArea(c);
 
@@ -316,13 +320,11 @@ public class ColorTrackingUtil {
 	 * @return Segmented image.
 	 */
 	public static Mat segment(Mat img) {
-		Mat copy = img.clone();
+		Imgproc.erode(img, img, new Mat());
+		Imgproc.dilate(img, img, new Mat());
+		Imgproc.medianBlur(img, img, BLUR_FACTOR);
 
-		Imgproc.erode(copy, copy, new Mat());
-		//Imgproc.dilate(copy, copy, new Mat());
-		Imgproc.medianBlur(copy, copy, BLUR_FACTOR);
-
-		return copy;
+		return img;
 	}
 
 	/**

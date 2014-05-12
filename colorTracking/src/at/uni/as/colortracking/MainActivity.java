@@ -244,7 +244,7 @@ public class MainActivity extends Activity implements CvCameraViewListener2,
 			robot.ledOff();
 			robot.barDown();
 			robot.barUp();
-			robot.moveForward();
+			robot.moveForward(15, 500);
 			robot.stop();
 		}
 	}
@@ -262,12 +262,16 @@ public class MainActivity extends Activity implements CvCameraViewListener2,
 			image = trackBeacon.processImage(image, (int) POS_TRACK_X,
 					(int) POS_TRACK_Y);
 
-			if (robot != null
-					&& (trackSingle.getTrackingActive() || trackBeacon
-							.getTrackingActive())) {
+			if (robot != null && (trackSingle.getTrackingActive() || trackBeacon.getTrackingActive())) {
 				if (trackBeacon.isHomographyEnabled()) {
-					robot.setPosition(enviroment.locate(trackBeacon
-							.getTrackedObjects()));
+					Point robotPos = enviroment.locate(trackBeacon
+							.getTrackedObjects());
+					
+					if(robotPos != null) {
+						robot.setPosition(robotPos); 
+					} else {
+						//robot.turnLeft(Robot.DEFAULT_VELOCITY, 250);
+					}
 
 					if (robot.isConnected()) {
 						if (robot.isMoveToCoordsEnabled()) {

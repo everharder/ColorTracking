@@ -24,7 +24,7 @@ public class ColorTracking {
 	private static final float BACKPROJ_THRESH_MIN = 1;
 	private static final float BACKPROJ_THRESH_STP = 1;
 	private static final float BACKPROJ_SCALE = 15;
-	private static final float SEGMENT_AREA_MIN = 200;
+	private static final float SEGMENT_AREA_MIN = 50;
 
 	private Mat homography = null;
 	private List<TrackedObject> trackedObjects = null;
@@ -64,16 +64,19 @@ public class ColorTracking {
 			homography = ColorTrackingUtil.getHomographyMatrix(img);
 			calcHomography = false;
 		}
-
+		
 		if (trackingActive) {
+			Mat imgRgb = new Mat();
+			Imgproc.cvtColor(img, imgRgb, Imgproc.COLOR_RGBA2RGB);
+			List<Mat> imgRG = ColorTrackingUtil.convertRGB2RG(imgRgb);
+			
 			Mat trckImg = null;
 			List<Point> bottom = null;
 
 			for (TrackedObject trackedObject : trackedObjects) {
-
 				trackedObject.resetDists();
 				for (int i = 0; i < trackedObject.getTracks().size(); i++) {
-					trckImg = backprojection(img, trackedObject.getTrack(i));
+					trckImg = backprojection(imgRG, trackedObject.getTrack(i));
 
 					if (trckImg == null)
 						continue;
@@ -162,13 +165,10 @@ public class ColorTracking {
 	 *            Probability matrix.
 	 * @return Back projection.
 	 */
-	private Mat backprojection(Mat img, TrackedColor track) {
+	private Mat backprojection(List<Mat> img, TrackedColor track) {
 		Mat backproj = new Mat();
-		Mat imgRGB = new Mat();
 
-		// Convert from RGBA fproormat to RG.
-		Imgproc.cvtColor(img, imgRGB, Imgproc.COLOR_RGBA2RGB);
-		Imgproc.calcBackProject(ColorTrackingUtil.convertRGB2RG(imgRGB),
+		Imgproc.calcBackProject(img,
 				new MatOfInt(0, 1), track.getProbMap(), backproj,
 				new MatOfFloat(0.0f, 255.0f, 0f, 255.0f), BACKPROJ_SCALE);
 
@@ -202,7 +202,6 @@ public class ColorTracking {
 		Imgproc.threshold(backproj, backproj, track.getThreshold(), 255.0f,
 				Imgproc.THRESH_BINARY);
 
-		imgRGB.release();
 		return backproj;
 	}
 
@@ -253,12 +252,12 @@ public class ColorTracking {
 		Mat src = new Mat(1, 1, CvType.CV_32FC2);
 		Mat dst = new Mat(1, 1, CvType.CV_32FC2);
 
-		src.put(0, 0, new double[] { p.x, p.y });
+		src.put(0, 0, new double[] { p.y, p.x });
 
 		// Multiply homography matrix with bottom point.
 		Core.perspectiveTransform(src, dst, homography);
 		// Real world point.
-		Point dest = new Point(dst.get(0, 0)[0], dst.get(0, 0)[1]);
+		Point dest = new Point(dst.get(0, 0)[1], dst.get(0, 0)[0]);
 		// Calc distance with scalar product.
 		dist = Math.sqrt(Math.pow(dest.x, 2) + Math.pow(dest.y, 2));
 
