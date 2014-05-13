@@ -20,7 +20,7 @@ public class RobotEnviroment {
 	public static final double MAX_Y = 100;
 	public static final double HALFWAY_Y = 50;
 	public static final double HALFWAY_X = 50;
-	private static final double MAX_BEACON_STRIP_DIST_PXL = 50;
+	private static final double MAX_BEACON_STRIP_DIST_PXL = 20;
 	
 	private Mat homography = null;
 
@@ -162,7 +162,7 @@ public class RobotEnviroment {
 	}
 
 	public void calcHomography(Mat image) {
-		homography = ColorTrackingUtil.getHomographyMatrix(image);
+		homography = ColorTrackingUtil.calcHomographyMatrix(image);
 	}
 	
 	public static boolean hasCoordFormat(String value) {

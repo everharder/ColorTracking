@@ -9,6 +9,7 @@ public class TrackedBeacon {
 	private Beacon beacon;
 	
 	public TrackedBeacon(Beacon beacon, TrackedColor upperColor, TrackedColor lowerColor) {
+		this.beacon = beacon;
 		this.upperColor = upperColor;
 		this.lowerColor = lowerColor;
 	}

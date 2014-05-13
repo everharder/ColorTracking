@@ -187,9 +187,6 @@ public class MainActivity extends Activity implements CvCameraViewListener2,
 			robot.moveForward(15, 250);
 			robot.moveBackward(15, 250);
 		}
-		
-		mOpenCvCameraView.setMaxFrameSize(50, 50);
-        mOpenCvCameraView.enableFpsMeter();
 	}
 
 	public void onCameraViewStopped() {
@@ -197,11 +194,11 @@ public class MainActivity extends Activity implements CvCameraViewListener2,
 	}
 
 	public Mat onCameraFrame(CvCameraViewFrame inputFrame) {
-		Mat image = null;
+		Mat image = inputFrame.rgba();
 
 		if(trackingEnabled && enviroment.getHomography() != null) {			
 			Map<Color, List<TrackedColor>> trackedColors = ColorTrackingUtil.detectColors(image);
-			image = ColorTrackingUtil.drawTrackedColors(inputFrame.rgba(), trackedColors);
+			image = ColorTrackingUtil.drawTrackedColors(image, trackedColors);
 			if(image == null)
 				return inputFrame.rgba();
 			
@@ -214,10 +211,10 @@ public class MainActivity extends Activity implements CvCameraViewListener2,
 						image,
 						"robot: "
 								+ String.valueOf( DecimalFormat.getIntegerInstance().format(robot.getPosition().x))
-								+ ","
+								+ "|"
 								+ String.valueOf( DecimalFormat.getIntegerInstance().format(robot.getPosition().y)),
 						new Point(RES_DISP_H / 2, RES_DISP_W / 2),
-						Core.FONT_HERSHEY_SIMPLEX, 0.75, new Scalar(
+						Core.FONT_HERSHEY_SIMPLEX, 3, new Scalar(
 								50.0));
 			}
 			

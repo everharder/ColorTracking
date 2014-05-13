@@ -18,13 +18,12 @@ import org.opencv.imgproc.Imgproc;
 
 public class ColorTrackingUtil {
 	private static final int BLUR_FACTOR = 11; // needs to be odd
-	public static int CONTOUR_SIZE_MIN = 25;
 	public static int FOREGROUND_TOLERANCE_H = 25;
 	public static int FOREGROUND_TOLERANCE_S = 50;
 	public static int FOREGROUND_TOLERANCE_V = 50;
 	
-    public static final Scalar DEFAULT_TOL_HSV = new Scalar(5, 40, 40);
-	private static final double DETECTION_AREA_MIN = 25;
+    public static final Scalar DEFAULT_TOL_HSV = new Scalar(10, 50, 50);
+	private static final double DETECTION_AREA_MIN = 500;
 	private static final int TRACKED_RECT_THICKNESS = 3;
 
 	/**
@@ -34,7 +33,7 @@ public class ColorTrackingUtil {
 	 *            Image.
 	 * @return Homography matrix.
 	 */
-	public static Mat getHomographyMatrix(Mat mRgba) {
+	public static Mat calcHomographyMatrix(Mat mRgba) {
 		Mat gray = new Mat();
 		final Size mPatternSize = new Size(6, 9);
 		MatOfPoint2f mCorners, RealWorldC;
@@ -42,34 +41,20 @@ public class ColorTrackingUtil {
 		Mat homography = null;
 		boolean mPatternWasFound = false;
 
-		// second version of points, in real world coordinates X=width, Y=height
-		RealWorldC = new MatOfPoint2f(new Point(-48.0f, 309.0f), new Point(
-				-48.0f, 321.0f), new Point(-48.0f, 333.0f), new Point(-48.0f,
-				345.0f), new Point(-48.0f, 357.0f), new Point(-48.0f, 369.0f),
-				new Point(-36.0f, 309.0f), new Point(-36.0f, 321.0f),
-				new Point(-36.0f, 333.0f), new Point(-36.0f, 345.0f),
-				new Point(-36.0f, 357.0f), new Point(-36.0f, 369.0f),
-				new Point(-24.0f, 309.0f), new Point(-24.0f, 321.0f),
-				new Point(-24.0f, 333.0f), new Point(-24.0f, 345.0f),
-				new Point(-24.0f, 357.0f), new Point(-24.0f, 369.0f),
-				new Point(-12.0f, 309.0f), new Point(-12.0f, 321.0f),
-				new Point(-12.0f, 333.0f), new Point(-12.0f, 345.0f),
-				new Point(-12.0f, 357.0f), new Point(-12.0f, 369.0f),
-				new Point(0.0f, 309.0f), new Point(0.0f, 321.0f), new Point(
-						0.0f, 333.0f), new Point(0.0f, 345.0f), new Point(0.0f,
-						357.0f), new Point(0.0f, 369.0f), new Point(12.0f,
-						309.0f), new Point(12.0f, 321.0f), new Point(12.0f,
-						333.0f), new Point(12.0f, 345.0f), new Point(12.0f,
-						357.0f), new Point(12.0f, 369.0f), new Point(24.0f,
-						309.0f), new Point(24.0f, 321.0f), new Point(24.0f,
-						333.0f), new Point(24.0f, 345.0f), new Point(24.0f,
-						357.0f), new Point(24.0f, 369.0f), new Point(36.0f,
-						309.0f), new Point(36.0f, 321.0f), new Point(36.0f,
-						333.0f), new Point(36.0f, 345.0f), new Point(36.0f,
-						357.0f), new Point(36.0f, 369.0f), new Point(48.0f,
-						309.0f), new Point(48.0f, 321.0f), new Point(48.0f,
-						333.0f), new Point(48.0f, 345.0f), new Point(48.0f,
-						357.0f), new Point(48.0f, 369.0f));
+		//coordinates for phone in horizontal positioning
+		RealWorldC = new MatOfPoint2f(
+		        new Point(-48.0f, 309.0f), new Point(-48.0f, 321.0f),new Point(-48.0f, 333.0f), new Point(-48.0f, 345.0f),new Point(-48.0f, 357.0f), new Point(-48.0f, 369.0f), 
+		        new Point(-36.0f, 309.0f), new Point(-36.0f, 321.0f),new Point(-36.0f, 333.0f), new Point(-36.0f, 345.0f),new Point(-36.0f, 357.0f), new Point(-36.0f, 369.0f),
+		        new Point(-24.0f, 309.0f), new Point(-24.0f, 321.0f),new Point(-24.0f, 333.0f), new Point(-24.0f, 345.0f),new Point(-24.0f, 357.0f), new Point(-24.0f, 369.0f),
+		        new Point(-12.0, 309.0f),  new Point(-12.0, 321.0f), new Point(-12.0, 333.0f),  new Point(-12.0, 345.0f), new Point(-12.0, 357.0f),  new Point(-12.0, 369.0f),
+		        new Point(0.0f, 309.0f),   new Point(0.0f, 321.0f),  new Point(0.0f, 333.0f),   new Point(0.0f, 345.0f),  new Point(0.0f, 357.0f),   new Point(0.0f, 369.0f),
+		        new Point(12.0, 309.0f),  new Point(12.0, 321.0f), new Point(12.0, 333.0f),  new Point(12.0, 345.0f), new Point(12.0, 357.0f),  new Point(12.0, 369.0f),
+		        new Point(24.0f, 309.0f),  new Point(24.0f, 321.0f), new Point(24.0f, 333.0f),  new Point(24.0f, 345.0f), new Point(24.0f, 357.0f),  new Point(24.0f, 369.0f),
+		        new Point(36.0f, 309.0f),  new Point(36.0f, 321.0f), new Point(36.0f, 333.0f),  new Point(36.0f, 345.0f), new Point(36.0f, 357.0f),  new Point(36.0f, 369.0f),
+		        new Point(48.0f, 309.0f),  new Point(48.0f, 321.0f), new Point(48.0f, 333.0f),  new Point(48.0f, 345.0f), new Point(48.0f, 357.0f),  new Point(48.0f, 369.0f));
+		
+		//No clue if this works to transform the Mat from horizontal to landscape
+		//Core.transpose(RealWorldC, RealWorldC);
 
 		Imgproc.cvtColor(mRgba, gray, Imgproc.COLOR_RGBA2GRAY);
 		// getting inner corners of chessboard
@@ -253,8 +238,8 @@ public class ColorTrackingUtil {
 		Mat imgHsv = new Mat();
 		Imgproc.cvtColor(imgRgb, imgHsv, Imgproc.COLOR_RGB2HSV_FULL);
 		
-		Scalar lowerBound = new Scalar(color.color().val[0] - tolerance.val[0], color.color().val[1] - tolerance.val[1], color.color().val[2] - tolerance.val[2]);
-		Scalar upperBound = new Scalar(color.color().val[0] + tolerance.val[0], color.color().val[1] + tolerance.val[1], color.color().val[2] + tolerance.val[2]);
+		Scalar lowerBound = new Scalar(color.hsv().val[0] - tolerance.val[0], color.hsv().val[1] - tolerance.val[1], color.hsv().val[2] - tolerance.val[2]);
+		Scalar upperBound = new Scalar(color.hsv().val[0] + tolerance.val[0], color.hsv().val[1] + tolerance.val[1], color.hsv().val[2] + tolerance.val[2]);
 		
 		Mat imgBinary = new Mat();
 		Core.inRange(imgHsv, lowerBound, upperBound, imgBinary);
@@ -312,7 +297,7 @@ public class ColorTrackingUtil {
 		for(Color c : trackedColors.keySet()) {
 			for(TrackedColor t : trackedColors.get(c)) {
 				Rect rect = t.getBorders();
-				Core.rectangle(image, new Point(rect.x, rect.y), new Point(rect.x + rect.width, rect.y + rect.height), c.color(), TRACKED_RECT_THICKNESS);
+				Core.rectangle(image, new Point(rect.x, rect.y), new Point(rect.x + rect.width, rect.y + rect.height), c.rgb(), TRACKED_RECT_THICKNESS);
 			}
 		}
 		
