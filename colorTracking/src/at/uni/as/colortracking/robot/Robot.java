@@ -22,18 +22,17 @@ public class Robot{
 	@SuppressWarnings("unused")
 	private static final double CATCH_DIST = 25.0;
 	private static final double COORDS_TOLERANCE = 5.0;
-	private static final double DEGREE_TOLERANCE = 5.0;
 	
-	public static final int DEFAULT_VELOCITY = 15;
+	public static final int DEFAULT_VELOCITY = 10;
 	public static final int DEFAULT_MOVE_TIME = 250; //ms
 	public static final int BEACONNOTFOUND_DELAY = 1000; //ms
 	
 	private FTDriver com;
 	
 	private Point position = null;
-	private Double degree = null;
+	private Point positionOld = null;
 	private Queue<Point> targetCoords = new LinkedList<Point>();
-	
+
 	private boolean catchObjectFlag = false;
 	private boolean moveToCoordFlag = false;
 
@@ -261,7 +260,7 @@ public class Robot{
 		}
 		
 		Point target = targetCoords.peek();
-		
+
 		if(position == null) {
 			turnLeft(Robot.DEFAULT_VELOCITY, Robot.DEFAULT_MOVE_TIME);
 			
@@ -277,40 +276,25 @@ public class Robot{
 			targetCoords.poll();
 			success();
 		} else {
-			if(degree != null) {
-				double targetDegree = getTargetDegree(position, target);
-				
-				if(Math.abs(degree - targetDegree) < DEGREE_TOLERANCE)
-					moveForward(DEFAULT_VELOCITY, DEFAULT_MOVE_TIME);
-				else if(degree < targetDegree) 
-					turnLeft(DEFAULT_VELOCITY, DEFAULT_MOVE_TIME);
-				else
-					turnRight(DEFAULT_VELOCITY, DEFAULT_MOVE_TIME);
-			} else {
-				Log.d("ROBOT", "no degree data for movement");
+			if(positionOld == null) {
+				positionOld = position.clone();				
 			}
+				
+			double deltaX = Math.abs(position.x - target.x);
+			double deltaY = Math.abs(position.y - target.y);
+			double deltaXOld = Math.abs(positionOld.x - target.x);
+			double deltaYOld = Math.abs(positionOld.y - target.y);
+			
+			if(deltaX < deltaXOld && deltaY < deltaYOld) {
+				moveForward(DEFAULT_VELOCITY, DEFAULT_MOVE_TIME);
+			} else {
+				moveBackward(DEFAULT_VELOCITY, DEFAULT_MOVE_TIME);
+				turnLeft(DEFAULT_VELOCITY, DEFAULT_MOVE_TIME);
+				moveForward(DEFAULT_VELOCITY, DEFAULT_MOVE_TIME);
+			}
+			
+			positionOld = position.clone();
 		}
-	}
-	
-	private double getTargetDegree(Point robot, Point target) {
-		double deltaX = Math.abs(robot.x - target.x);
-		double deltaY = Math.abs(robot.x - target.x);
-		
-		//prevent division by zero
-		if(deltaX == 0.0)
-			deltaX = 1.0;
-		
-		double degree = Math.atan(deltaY / deltaX);
-		if(robot.x <  target.x && robot.y <  target.y)
-			return degree;
-		if(robot.x >= target.x && robot.y <  target.y)
-			return 180.0 - degree;
-		if(robot.x >= target.x && robot.y >= target.y)
-			return 270.0 - degree;
-		if(robot.x <  target.x && robot.y >= target.y)
-			return 360.0 - degree;
-		
-		return 0.0;
 	}
 
 	public static Command getRandomCommand() {
@@ -383,7 +367,7 @@ public class Robot{
 		targetCoords.clear();
 		targetCoords.addAll(coords);
 		moveToCoordFlag = true;
-		catchObjectFlag = false;	
+		catchObjectFlag = false;
 	}
 
 	private void success() {
