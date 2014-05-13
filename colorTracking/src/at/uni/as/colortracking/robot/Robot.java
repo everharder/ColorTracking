@@ -1,12 +1,10 @@
 package at.uni.as.colortracking.robot;
 
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Queue;
 import java.util.Random;
-import java.util.Stack;
 
 import jp.ksksue.driver.serial.FTDriver;
 
@@ -21,25 +19,20 @@ public class Robot{
 	@SuppressWarnings("unused")
 	private String TAG = "iRobot";
 	
+	@SuppressWarnings("unused")
 	private static final double CATCH_DIST = 25.0;
 	private static final double COORDS_TOLERANCE = 5.0;
+	private static final double DEGREE_TOLERANCE = 5.0;
 	
 	public static final int DEFAULT_VELOCITY = 15;
 	public static final int DEFAULT_MOVE_TIME = 250; //ms
 	public static final int BEACONNOTFOUND_DELAY = 1000; //ms
 	
 	private FTDriver com;
-	private Stack<Command> history = new Stack<Robot.Command>();
 	
 	private Point position = null;
-	private Point lastPos = null;
-	private 
+	private Double degree = null;
 	private Queue<Point> targetCoords = new LinkedList<Point>();
-	
-
-	
-	private Double targetDistCur = null;
-	private Double targetDistOld = null;
 	
 	private boolean catchObjectFlag = false;
 	private boolean moveToCoordFlag = false;
@@ -284,15 +277,47 @@ public class Robot{
 			targetCoords.poll();
 			success();
 		} else {
-			//TODO: implement movemoent algorithm
+			if(degree != null) {
+				double targetDegree = getTargetDegree(position, target);
+				
+				if(Math.abs(degree - targetDegree) < DEGREE_TOLERANCE)
+					moveForward(DEFAULT_VELOCITY, DEFAULT_MOVE_TIME);
+				else if(degree < targetDegree) 
+					turnLeft(DEFAULT_VELOCITY, DEFAULT_MOVE_TIME);
+				else
+					turnRight(DEFAULT_VELOCITY, DEFAULT_MOVE_TIME);
+			} else {
+				Log.d("ROBOT", "no degree data for movement");
+			}
 		}
 	}
 	
-	private Command getRandomCommand() {
+	private double getTargetDegree(Point robot, Point target) {
+		double deltaX = Math.abs(robot.x - target.x);
+		double deltaY = Math.abs(robot.x - target.x);
+		
+		//prevent division by zero
+		if(deltaX == 0.0)
+			deltaX = 1.0;
+		
+		double degree = Math.atan(deltaY / deltaX);
+		if(robot.x <  target.x && robot.y <  target.y)
+			return degree;
+		if(robot.x >= target.x && robot.y <  target.y)
+			return 180.0 - degree;
+		if(robot.x >= target.x && robot.y >= target.y)
+			return 270.0 - degree;
+		if(robot.x <  target.x && robot.y >= target.y)
+			return 360.0 - degree;
+		
+		return 0.0;
+	}
+
+	public static Command getRandomCommand() {
 		return getRandomCommand(Arrays.asList(Command.values()));
 	}
 	
-	private Command getRandomCommand(List<Command> commands) {
+	public static Command getRandomCommand(List<Command> commands) {
 		Random r = new Random();
 		int randomNumber = r.nextInt(commands.size());
 		
@@ -358,15 +383,7 @@ public class Robot{
 		targetCoords.clear();
 		targetCoords.addAll(coords);
 		moveToCoordFlag = true;
-		
-		if(catchObjectFlag) {
-			targetDistCur = null;
-			targetDistOld = null;
-			catchObjectFlag = false;
-		}
-		
-		if(position != null)
-			lastPos = position.clone();
+		catchObjectFlag = false;	
 	}
 
 	private void success() {
