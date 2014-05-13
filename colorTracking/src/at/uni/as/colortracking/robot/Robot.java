@@ -1,7 +1,10 @@
 package at.uni.as.colortracking.robot;
 
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.LinkedList;
 import java.util.List;
+import java.util.Queue;
 import java.util.Random;
 import java.util.Stack;
 
@@ -11,7 +14,6 @@ import org.opencv.core.Point;
 
 import android.annotation.SuppressLint;
 import android.util.Log;
-import android.util.Pair;
 import android.view.View;
 
 @SuppressLint("UseValueOf")
@@ -19,16 +21,22 @@ public class Robot{
 	@SuppressWarnings("unused")
 	private String TAG = "iRobot";
 	
-	private static Double CATCH_DIST = 25.0;
-	public static int DEFAULT_VELOCITY = 15;
-	public static int DEFAULT_MOVE_TIME = 250; //ms
+	private static final double CATCH_DIST = 25.0;
+	private static final double COORDS_TOLERANCE = 5.0;
+	
+	public static final int DEFAULT_VELOCITY = 15;
+	public static final int DEFAULT_MOVE_TIME = 250; //ms
+	public static final int BEACONNOTFOUND_DELAY = 1000; //ms
 	
 	private FTDriver com;
-	private Point position = null;
-	private Point lastPos = null;
 	private Stack<Command> history = new Stack<Robot.Command>();
 	
-	private List<Point> moveToCoords = new ArrayList<Point>();
+	private Point position = null;
+	private Point lastPos = null;
+	private 
+	private Queue<Point> targetCoords = new LinkedList<Point>();
+	
+
 	
 	private Double targetDistCur = null;
 	private Double targetDistOld = null;
@@ -242,45 +250,53 @@ public class Robot{
 		this.position = position;
 	}
 	
-	public void moveToCoords(){
-		if(!moveToCoordFlag) 
-			return;
-		if(moveToCoords == null || moveToCoords.size() == 0) {
+	public void move(){
+		if(moveToCoordFlag)
+			moveToCoords();
+		else if(catchObjectFlag)
+			catchObject();
+	}
+	
+	private void catchObject(){
+		//TODO: implement
+	}
+	
+	private void moveToCoords(){
+		if(targetCoords == null || targetCoords.isEmpty()) {
 			moveToCoordFlag = false;
 			return;
 		}
 		
-		Point target = moveToCoords.get(moveToCoords.size() - 1);
+		Point target = targetCoords.peek();
 		
 		if(position == null) {
 			turnLeft(Robot.DEFAULT_VELOCITY, Robot.DEFAULT_MOVE_TIME);
-		} else if(Math.abs(position.x - target.x) < 5 && Math.abs(position.y - target.y) < 5) {
-			moveToCoords.remove(target);
 			
-			barDown();
 			try {
-				Thread.sleep(1000);
+				Thread.sleep(BEACONNOTFOUND_DELAY);
 			} catch (InterruptedException e) {
 			}
 			
-			barUp();
+		} else if(Math.abs(position.x - target.x) < COORDS_TOLERANCE && Math.abs(position.y - target.y) < COORDS_TOLERANCE) {
+			//robot is at target coords
+			
+			//remove target coords from queue
+			targetCoords.poll();
+			success();
 		} else {
-			Command c = getRandomCommand();
-				
-			if(Math.abs(position.x - target.x) <= Math.abs(lastPos.x - target.x) && Math.abs(position.y - target.y) <= Math.abs(lastPos.y - target.y) && !history.isEmpty()) {
-					c = history.peek();
-			} 
-				
-			doCommand(c, DEFAULT_VELOCITY, DEFAULT_MOVE_TIME);
-			history.push(c);
+			//TODO: implement movemoent algorithm
 		}
 	}
 	
 	private Command getRandomCommand() {
+		return getRandomCommand(Arrays.asList(Command.values()));
+	}
+	
+	private Command getRandomCommand(List<Command> commands) {
 		Random r = new Random();
-		int randomNumber = r.nextInt(Command.values().length - 1);
+		int randomNumber = r.nextInt(commands.size());
 		
-		return Command.values()[randomNumber];
+		return commands.get(randomNumber);
 	}
 
 	public void doCommand(Command c) {
@@ -289,7 +305,6 @@ public class Robot{
 			case BACKWARD: moveBackward();break;
 			case LEFT: turnLeft();break;
 			case RIGHT: turnRight();break;
-			default: moveForward();
 		}
 	}
 	
@@ -299,7 +314,6 @@ public class Robot{
 			case BACKWARD: moveBackward(v,t);break;
 			case LEFT: turnLeft(v,t);break;
 			case RIGHT: turnRight(v,t);break;
-			default: moveForward(v,t);
 		}
 	}
 
@@ -325,8 +339,8 @@ public class Robot{
 		return catchObjectFlag;
 	}
 
-	public void setCatchObjectEnabled(boolean catchObjectFlag) {
-		this.catchObjectFlag = catchObjectFlag;
+	public void setCatchObjectEnabled(boolean enabled) {
+		this.catchObjectFlag = enabled;
 	}
 	
 	public boolean isMoveToCoordsEnabled() {
@@ -337,21 +351,37 @@ public class Robot{
 		this.moveToCoordFlag = enabled;
 	}
 	
-	public void setMoveToCoords(List<Point> coords) {
+	public void setTargetCoords(List<Point> coords) {
 		if(coords == null || coords.size() == 0)
 			return;
 		
-		this.moveToCoords = coords;
+		targetCoords.clear();
+		targetCoords.addAll(coords);
 		moveToCoordFlag = true;
-		targetDistCur = null;
-		targetDistOld = null;
+		
+		if(catchObjectFlag) {
+			targetDistCur = null;
+			targetDistOld = null;
+			catchObjectFlag = false;
+		}
 		
 		if(position != null)
 			lastPos = position.clone();
 	}
 
-
-	public enum Command {
+	private void success() {
+		barDown();
+		ledOn();
+		try {
+			Thread.sleep(1000);
+		} catch (InterruptedException e) {
+		}
+		
+		barUp();
+		ledOff();
+	}
+	
+ 	public enum Command {
 		FORWARD,
 		BACKWARD,
 		LEFT,

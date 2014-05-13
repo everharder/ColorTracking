@@ -21,7 +21,6 @@ import android.app.Activity;
 import android.app.AlertDialog;
 import android.app.AlertDialog.Builder;
 import android.content.DialogInterface;
-import android.content.res.Resources.NotFoundException;
 import android.hardware.usb.UsbManager;
 import android.os.Bundle;
 import android.util.Log;
@@ -54,7 +53,7 @@ public class MainActivity extends Activity implements CvCameraViewListener2,
 
 	// Menu Items
 	private MenuItem menuHomography = null;
-	private MenuItem menuStartLocalization = null;
+	private MenuItem menuToggleTracking = null;
 	private MenuItem menuCatchObject = null;
 	private MenuItem menuMoveTo = null;
 
@@ -66,17 +65,11 @@ public class MainActivity extends Activity implements CvCameraViewListener2,
 	private BaseLoaderCallback mLoaderCallback = new BaseLoaderCallback(this) {
 		@Override
 		public void onManagerConnected(int status) {
-			switch (status) {
-			case LoaderCallbackInterface.SUCCESS: {
+			if(status == LoaderCallbackInterface.SUCCESS) {
 				Log.i(TAG, "OpenCV loaded successfully");
 				mOpenCvCameraView.enableView();
-			}
-				break;
-			default: {
+			} else 
 				super.onManagerConnected(status);
-			}
-				break;
-			}
 		}
 	};
 
@@ -123,7 +116,7 @@ public class MainActivity extends Activity implements CvCameraViewListener2,
 	public boolean onCreateOptionsMenu(Menu menu) {
 		Log.i(TAG, "called onCreateOptionsMenu");
 
-		this.menuStartLocalization = menu.add("Toggle Localization");
+		this.menuToggleTracking = menu.add("Toggle Tracking");
 		this.menuHomography = menu.add("Calc HOMOGRAPHY");
 		this.menuCatchObject = menu.add("Toggle catch Object");
 		this.menuMoveTo = menu.add("Move to...");
@@ -135,21 +128,19 @@ public class MainActivity extends Activity implements CvCameraViewListener2,
 	public boolean onOptionsItemSelected(MenuItem item) {
 		Log.i(TAG, "called onOptionsItemSelected; selected item: " + item);
 
-		if (item == this.menuStartLocalization) {
-			// ignore if no color data set
+		if (item == this.menuToggleTracking) {
 			if(enviroment.getHomography() == null) {
-				Toast.makeText(this, "no homography", Toast.LENGTH_SHORT)
-						.show();
+				Toast.makeText(this, "no homography", Toast.LENGTH_SHORT).show();
 				return true;
 			}
 
-			trackingEnabled = !trackingEnabled;
-			
-			// toggle tracking
-			if (trackingEnabled)
-				Toast.makeText(this, "started tracking", Toast.LENGTH_SHORT).show();
-			else
+			if (trackingEnabled) {
+				trackingEnabled = false;
 				Toast.makeText(this, "stopped tracking", Toast.LENGTH_SHORT).show();
+			} else {
+				trackingEnabled = true;
+				Toast.makeText(this, "started tracking", Toast.LENGTH_SHORT).show();
+			}
 
 		} else if (item == this.menuHomography) {
 			calcHomography = true;
@@ -158,19 +149,15 @@ public class MainActivity extends Activity implements CvCameraViewListener2,
 				if (robot.isCatchObjectEnabled()) {
 					robot.setCatchObjectEnabled(false);
 
-					Toast.makeText(this, "catch object disabled",
-							Toast.LENGTH_SHORT).show();
+					Toast.makeText(this, "catch object disabled",Toast.LENGTH_SHORT).show();
 				} else {
 					robot.setCatchObjectEnabled(true);
 
-					Toast.makeText(this, "catch object enabled",
-							Toast.LENGTH_SHORT).show();
+					Toast.makeText(this, "catch object enabled",Toast.LENGTH_SHORT).show();
 
 					if (robot.isMoveToCoordsEnabled()) {
 						robot.setMoveToCoordsEnabled(false);
-						Toast.makeText(getApplicationContext(),
-								"MoveTo mode disabled!", Toast.LENGTH_SHORT)
-								.show();
+						Toast.makeText(getApplicationContext(),"MoveTo mode disabled!", Toast.LENGTH_SHORT).show();
 					}
 				}
 			}
@@ -210,44 +197,36 @@ public class MainActivity extends Activity implements CvCameraViewListener2,
 	}
 
 	public Mat onCameraFrame(CvCameraViewFrame inputFrame) {
-		Mat image = inputFrame.rgba();
+		Mat image = null;
 
-		if(trackingEnabled) {
-			try {
-				//TODO: calc homography
-				Map<Color, List<TrackedColor>> trackedColors = ColorTrackingUtil.detectColors(image);
-				image = ColorTrackingUtil.drawTrackedColors(image, trackedColors);
-				if(image == null)
-					return inputFrame.rgba();
-				
-				Point position = RobotEnviroment.calcPosition(RobotEnviroment.extractBeacons(trackedColors), enviroment.getHomography());
-				robot.setPosition(position);
-				
-				// draw robot coordinates on screen
-				if (robot.getPosition() != null) {
-					Core.putText(
-							image,
-							"robot: "
-									+ String.valueOf( DecimalFormat.getIntegerInstance().format(robot.getPosition().x))
-									+ ","
-									+ String.valueOf( DecimalFormat.getIntegerInstance().format(robot.getPosition().y)),
-							new Point(RES_DISP_H / 2, RES_DISP_W / 2),
-							Core.FONT_HERSHEY_SIMPLEX, 0.75, new Scalar(
-									50.0));
-				}
-				
-				if (robot != null && robot.isConnected()) {				
-					if (robot.isMoveToCoordsEnabled()) {
-						//TODO: rework moveto
-					} else if (robot.isCatchObjectEnabled()) {
-						// add new catch target if not already set
-						//TODO: catch object
-					}
-				}
-			} catch (NotFoundException e) {
-				// Toast.makeText(this, "could not calc ProbMap",
-				// Toast.LENGTH_SHORT).show();
+		if(trackingEnabled && enviroment.getHomography() != null) {			
+			Map<Color, List<TrackedColor>> trackedColors = ColorTrackingUtil.detectColors(image);
+			image = ColorTrackingUtil.drawTrackedColors(inputFrame.rgba(), trackedColors);
+			if(image == null)
+				return inputFrame.rgba();
+			
+			Point position = RobotEnviroment.calcPosition(RobotEnviroment.extractBeacons(trackedColors), enviroment.getHomography());
+			robot.setPosition(position);
+			
+			// draw robot coordinates on screen
+			if (robot.getPosition() != null) {
+				Core.putText(
+						image,
+						"robot: "
+								+ String.valueOf( DecimalFormat.getIntegerInstance().format(robot.getPosition().x))
+								+ ","
+								+ String.valueOf( DecimalFormat.getIntegerInstance().format(robot.getPosition().y)),
+						new Point(RES_DISP_H / 2, RES_DISP_W / 2),
+						Core.FONT_HERSHEY_SIMPLEX, 0.75, new Scalar(
+								50.0));
 			}
+			
+			if (robot != null && robot.isConnected()) {				
+				robot.move();
+			}
+		} else if(calcHomography) {
+			enviroment.calcHomography(image);
+			calcHomography = false;
 		}
 
 		return image;
@@ -255,12 +234,6 @@ public class MainActivity extends Activity implements CvCameraViewListener2,
 
 	private Builder getAlertWindow(String title, String message,
 			EditText textbox) {
-		// code for costum alertwindow
-		// LayoutInflater inflater = (LayoutInflater)
-		// getSystemService(Context.LAYOUT_INFLATER_SERVICE);
-		// View layout = inflater.inflate(R.layout.yourLayoutId, (ViewGroup)
-		// findViewById(R.id.yourLayoutRoot));
-
 		AlertDialog.Builder alert = new AlertDialog.Builder(this);
 		alert.setView(textbox);
 		alert.setTitle(title);
@@ -280,25 +253,7 @@ public class MainActivity extends Activity implements CvCameraViewListener2,
 		public void onClick(DialogInterface dialog, int whichButton) {
 			String value = input.getText().toString();
 			if (value != null && value.length() > 0 && robot != null) {
-				robot.setMoveToCoords(ColorTrackingUtil.parseCoordsList(value));
-
-				if (robot.isMoveToCoordsEnabled()) {
-					Toast.makeText(getApplicationContext(),
-							"MoveTo mode enabled!", Toast.LENGTH_SHORT).show();
-					if (robot.isCatchObjectEnabled()) {
-						robot.setCatchObjectEnabled(false);
-						Toast.makeText(getApplicationContext(),
-								"CatchObject disabled!", Toast.LENGTH_SHORT)
-								.show();
-					}
-				} else
-					Toast.makeText(getApplicationContext(),
-							"Failed to add Move-Coordinates",
-							Toast.LENGTH_SHORT).show();
-			} else {
-				Toast.makeText(getApplicationContext(),
-						"Failed to add Move-Coordinates", Toast.LENGTH_SHORT)
-						.show();
+				robot.setTargetCoords(RobotEnviroment.parseCoordsList(value)); 
 			}
 		}
 	}

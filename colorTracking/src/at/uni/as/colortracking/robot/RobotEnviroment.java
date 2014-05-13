@@ -9,6 +9,7 @@ import org.opencv.core.Point;
 
 import at.uni.as.colortracking.tracking.Beacon;
 import at.uni.as.colortracking.tracking.Color;
+import at.uni.as.colortracking.tracking.ColorTrackingUtil;
 import at.uni.as.colortracking.tracking.TrackedBeacon;
 import at.uni.as.colortracking.tracking.TrackedColor;
 
@@ -27,6 +28,9 @@ public class RobotEnviroment {
 	}
 
 	public static List<TrackedBeacon> extractBeacons(Map<Color, List<TrackedColor>> detectedObjects) {
+		if(detectedObjects == null)
+			return null;
+		
 		List<TrackedBeacon> beacons = new ArrayList<TrackedBeacon>();
 		
 		boolean beaconDetected = false;
@@ -155,5 +159,63 @@ public class RobotEnviroment {
 	
 	public Mat getHomography() {
 		return homography;
+	}
+
+	public void calcHomography(Mat image) {
+		homography = ColorTrackingUtil.getHomographyMatrix(image);
+	}
+	
+	public static boolean hasCoordFormat(String value) {
+		try {
+			String[] vals = value.split(":");
+			if (vals.length != 2)
+				return false;
+			
+			Double.parseDouble(vals[0]);
+			Double.parseDouble(vals[1]);
+		} catch(Exception e) {
+			return false;
+		}
+		
+		return true;
+	}
+
+	public static Point parseCoords(String s) {
+		if(!hasCoordFormat(s))
+			return null;
+		
+		Point p = null;
+		try {
+			String[] vals = s.split(":");
+			if (vals.length != 2)
+				return null;
+			
+			p = new Point(Double.parseDouble(vals[0]), Double.parseDouble(vals[1]));
+		} catch(Exception e) {
+			return null;
+		}
+		
+		return p;
+	}
+	
+	public static List<Point> parseCoordsList(String s) {
+		if(s == null)
+			return null;
+		
+		String[] coordPairs = s.split("\n");
+		List<Point> coordList = new ArrayList<Point>();
+		for(int i=0; i < coordPairs.length; i++) {
+			try {
+				String[] coords = coordPairs[i].split(":");
+				double x = Double.valueOf(coords[0]);
+				double y = Double.valueOf(coords[1]);
+				
+				coordList.add(new Point(x, y));
+			} catch(Exception e) {
+				return null;
+			}
+		}
+		
+		return coordList;
 	}
 }

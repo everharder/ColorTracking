@@ -39,7 +39,7 @@ public class ColorTrackingUtil {
 		final Size mPatternSize = new Size(6, 9);
 		MatOfPoint2f mCorners, RealWorldC;
 		mCorners = new MatOfPoint2f();
-		Mat homography = new Mat();
+		Mat homography = null;
 		boolean mPatternWasFound = false;
 
 		// second version of points, in real world coordinates X=width, Y=height
@@ -78,11 +78,12 @@ public class ColorTrackingUtil {
 				mCorners);
 
 		if (mPatternWasFound) {
+			homography = new Mat();
 			Mat cornersClone = mCorners.clone();
 			mCornersBuffer.add(cornersClone);
 			homography = Calib3d.findHomography(mCorners, RealWorldC);
 			cornersClone.release();
-		}
+		} 
 
 		gray.release();
 		mCorners.release();
@@ -239,60 +240,6 @@ public class ColorTrackingUtil {
 
 		return segments;
 	}
-
-	public static boolean hasCoordFormat(String value) {
-		try {
-			String[] vals = value.split(":");
-			if (vals.length != 2)
-				return false;
-			
-			Double.parseDouble(vals[0]);
-			Double.parseDouble(vals[1]);
-		} catch(Exception e) {
-			return false;
-		}
-		
-		return true;
-	}
-	
-	public static Point parseCoords(String s) {
-		if(!hasCoordFormat(s))
-			return null;
-		
-		Point p = null;
-		try {
-			String[] vals = s.split(":");
-			if (vals.length != 2)
-				return null;
-			
-			p = new Point(Double.parseDouble(vals[0]), Double.parseDouble(vals[1]));
-		} catch(Exception e) {
-			return null;
-		}
-		
-		return p;
-	}
-	
-	public static List<Point> parseCoordsList(String s) {
-		if(s == null)
-			return null;
-		
-		String[] coordPairs = s.split("\n");
-		List<Point> coordList = new ArrayList<Point>();
-		for(int i=0; i < coordPairs.length; i++) {
-			try {
-				String[] coords = coordPairs[i].split(":");
-				double x = Double.valueOf(coords[0]);
-				double y = Double.valueOf(coords[1]);
-				
-				coordList.add(new Point(x, y));
-			} catch(Exception e) {
-				return null;
-			}
-		}
-		
-		return coordList;
-	}
 	
 	public static List<TrackedColor> detectColor(Mat img, Color color, Scalar tolerance) {
 		Mat imgRgb = null;
@@ -359,6 +306,9 @@ public class ColorTrackingUtil {
 	}
 
 	public static Mat drawTrackedColors(Mat image, Map<Color, List<TrackedColor>> trackedColors) {
+		if(image == null || trackedColors == null)
+			return null;
+		
 		for(Color c : trackedColors.keySet()) {
 			for(TrackedColor t : trackedColors.get(c)) {
 				Rect rect = t.getBorders();
