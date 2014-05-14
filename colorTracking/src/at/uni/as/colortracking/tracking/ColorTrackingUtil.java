@@ -1,13 +1,13 @@
-package at.uni.as.colortracking;
+package at.uni.as.colortracking.tracking;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import org.opencv.calib3d.Calib3d;
 import org.opencv.core.Core;
-import org.opencv.core.CvType;
 import org.opencv.core.Mat;
-import org.opencv.core.MatOfFloat;
 import org.opencv.core.MatOfPoint;
 import org.opencv.core.MatOfPoint2f;
 import org.opencv.core.Point;
@@ -17,11 +17,14 @@ import org.opencv.core.Size;
 import org.opencv.imgproc.Imgproc;
 
 public class ColorTrackingUtil {
-	private static final int BLUR_FACTOR = 41; // needs to be odd
-	public static int CONTOUR_SIZE_MIN = 400;
+	private static final int BLUR_FACTOR = 9; // needs to be odd
 	public static int FOREGROUND_TOLERANCE_H = 25;
 	public static int FOREGROUND_TOLERANCE_S = 50;
 	public static int FOREGROUND_TOLERANCE_V = 50;
+
+	public static final Scalar DEFAULT_TOL_HSV = new Scalar(10, 125, 125);
+	private static final double DETECTION_AREA_MIN = 500;
+	private static final int TRACKED_RECT_THICKNESS = 3;
 
 	/**
 	 * Returns the homography matrix of the image.
@@ -30,15 +33,15 @@ public class ColorTrackingUtil {
 	 *            Image.
 	 * @return Homography matrix.
 	 */
-	public static Mat getHomographyMatrix(Mat mRgba) {
+	public static Mat calcHomographyMatrix(Mat mRgba) {
 		Mat gray = new Mat();
 		final Size mPatternSize = new Size(6, 9);
 		MatOfPoint2f mCorners, RealWorldC;
 		mCorners = new MatOfPoint2f();
-		Mat homography = new Mat();
+		Mat homography = null;
 		boolean mPatternWasFound = false;
 
-		// second version of points, in real world coordinates X=width, Y=height
+		// coordinates for phone in horizontal positioning
 		RealWorldC = new MatOfPoint2f(new Point(-48.0f, 309.0f), new Point(
 				-48.0f, 321.0f), new Point(-48.0f, 333.0f), new Point(-48.0f,
 				345.0f), new Point(-48.0f, 357.0f), new Point(-48.0f, 369.0f),
@@ -48,15 +51,15 @@ public class ColorTrackingUtil {
 				new Point(-24.0f, 309.0f), new Point(-24.0f, 321.0f),
 				new Point(-24.0f, 333.0f), new Point(-24.0f, 345.0f),
 				new Point(-24.0f, 357.0f), new Point(-24.0f, 369.0f),
-				new Point(-12.0f, 309.0f), new Point(-12.0f, 321.0f),
-				new Point(-12.0f, 333.0f), new Point(-12.0f, 345.0f),
-				new Point(-12.0f, 357.0f), new Point(-12.0f, 369.0f),
-				new Point(0.0f, 309.0f), new Point(0.0f, 321.0f), new Point(
-						0.0f, 333.0f), new Point(0.0f, 345.0f), new Point(0.0f,
-						357.0f), new Point(0.0f, 369.0f), new Point(12.0f,
-						309.0f), new Point(12.0f, 321.0f), new Point(12.0f,
-						333.0f), new Point(12.0f, 345.0f), new Point(12.0f,
-						357.0f), new Point(12.0f, 369.0f), new Point(24.0f,
+				new Point(-12.0, 309.0f), new Point(-12.0, 321.0f), new Point(
+						-12.0, 333.0f), new Point(-12.0, 345.0f), new Point(
+						-12.0, 357.0f), new Point(-12.0, 369.0f), new Point(
+						0.0f, 309.0f), new Point(0.0f, 321.0f), new Point(0.0f,
+						333.0f), new Point(0.0f, 345.0f), new Point(0.0f,
+						357.0f), new Point(0.0f, 369.0f), new Point(12.0,
+						309.0f), new Point(12.0, 321.0f), new Point(12.0,
+						333.0f), new Point(12.0, 345.0f), new Point(12.0,
+						357.0f), new Point(12.0, 369.0f), new Point(24.0f,
 						309.0f), new Point(24.0f, 321.0f), new Point(24.0f,
 						333.0f), new Point(24.0f, 345.0f), new Point(24.0f,
 						357.0f), new Point(24.0f, 369.0f), new Point(36.0f,
@@ -67,6 +70,10 @@ public class ColorTrackingUtil {
 						333.0f), new Point(48.0f, 345.0f), new Point(48.0f,
 						357.0f), new Point(48.0f, 369.0f));
 
+		// No clue if this works to transform the Mat from horizontal to
+		// landscape
+		// Core.transpose(RealWorldC, RealWorldC);
+
 		Imgproc.cvtColor(mRgba, gray, Imgproc.COLOR_RGBA2GRAY);
 		// getting inner corners of chessboard
 		List<Mat> mCornersBuffer = new ArrayList<Mat>();
@@ -74,6 +81,7 @@ public class ColorTrackingUtil {
 				mCorners);
 
 		if (mPatternWasFound) {
+			homography = new Mat();
 			Mat cornersClone = mCorners.clone();
 			mCornersBuffer.add(cornersClone);
 			homography = Calib3d.findHomography(mCorners, RealWorldC);
@@ -86,105 +94,6 @@ public class ColorTrackingUtil {
 		mCornersBuffer.clear();
 
 		return homography;
-	}
-
-	/**
-	 * Converts an image from RGB format to RG format with separated channels.
-	 * 
-	 * @param image
-	 *            Image in RGB format.
-	 * @return Image with separated channels R and G.
-	 */
-	public static ArrayList<Mat> convertRGB2RG(Mat image) {
-		ArrayList<Mat> splitImages = new ArrayList<Mat>();
-
-		Core.split(image, splitImages);// splitting image into 3 channels
-		Mat chR = new MatOfFloat();
-		Mat chG = new MatOfFloat();
-		Mat chB = new MatOfFloat();
-
-		// channels of picture
-		chR = (Mat) splitImages.get(0);
-		chG = (Mat) splitImages.get(1);
-		chB = (Mat) splitImages.get(2);
-
-		Mat r = new MatOfFloat();
-		Mat g = new MatOfFloat();
-		Mat b = new MatOfFloat();
-
-		Core.divide(chR, new Scalar(255.0), r, CvType.CV_64F);
-		Core.divide(chG, new Scalar(255.0), g, CvType.CV_64F);
-		Core.divide(chB, new Scalar(255.0), b, CvType.CV_64F);
-
-		Mat mSum = new MatOfFloat();
-		Core.add(r, g, mSum);
-		Core.add(mSum, b, mSum);
-
-		Core.divide(chR, mSum, chR, CvType.CV_64F);
-		Core.divide(chG, mSum, chG, CvType.CV_64F);
-		Core.divide(chB, mSum, chB, CvType.CV_64F);
-
-		ArrayList<Mat> mv = new ArrayList<Mat>();
-		mv.add(0, (Mat) chR);
-		mv.add(1, (Mat) chG);
-
-		return mv;
-	}
-
-	/**
-	 * Searches for the biggest contour(s) in the image.
-	 * 
-	 * @param mImg
-	 *            Image.
-	 * @return List of biggest contour(s).
-	 */
-	public static MatOfPoint getBiggestContour(Mat img) {
-		List<MatOfPoint> contours = getContours(img);
-
-		if (contours.size() == 0)
-			return null;
-
-		MatOfPoint biggest = getBiggestContour(contours, CONTOUR_SIZE_MIN);
-
-		// release memory
-		for (MatOfPoint c : contours)
-			if (c != biggest)
-				c.release();
-
-		return biggest;
-	}
-
-	public static MatOfPoint getBiggestContour(List<MatOfPoint> contours,
-			double minSize) {
-		double var = 0.5;
-		double maxArea = 0;
-
-		MatOfPoint biggest = null;
-		for (MatOfPoint c : contours) {
-			double area = Imgproc.contourArea(c);
-
-			if (area < minSize)
-				continue;
-
-			if (area > maxArea * (1 + var)) {
-				biggest = c;
-				maxArea = area;
-			}
-		}
-
-		return biggest;
-	}
-
-	public static List<MatOfPoint> getContours(Mat img) {
-		List<MatOfPoint> contours = new ArrayList<MatOfPoint>();
-		Mat clone = img.clone();
-
-		Imgproc.findContours(clone, contours, new Mat(), Imgproc.RETR_EXTERNAL,
-				Imgproc.CHAIN_APPROX_SIMPLE);
-
-		clone.release();
-
-		return contours;
 	}
 
 	/**
@@ -201,32 +110,39 @@ public class ColorTrackingUtil {
 	public static Mat getForegroundImage(int x, int y, Mat image) {
 		int cols = image.cols();
 		int rows = image.rows();
-		
+
 		// sample rectangle
 		Rect touchedRect = new Rect();
 		touchedRect.x = (x > 4) ? x - 4 : 0;
 		touchedRect.y = (y > 4) ? y - 4 : 0;
-		touchedRect.width  = (x + 4 < cols) ? x + 4 - touchedRect.x : cols - touchedRect.x;
-		touchedRect.height = (y + 4 < rows) ? y + 4 - touchedRect.y : rows - touchedRect.y;
+		touchedRect.width = (x + 4 < cols) ? x + 4 - touchedRect.x : cols
+				- touchedRect.x;
+		touchedRect.height = (y + 4 < rows) ? y + 4 - touchedRect.y : rows
+				- touchedRect.y;
 		Mat touchedRegionRgba = image.submat(touchedRect);
-		
+
 		Mat touchedRegionHsv = new Mat();
 		Mat mEmpty = new Mat();
-		Imgproc.cvtColor(touchedRegionRgba, touchedRegionHsv, Imgproc.COLOR_RGB2HSV_FULL);
-		
+		Imgproc.cvtColor(touchedRegionRgba, touchedRegionHsv,
+				Imgproc.COLOR_RGB2HSV_FULL);
+
 		// Calculate average color of touched region
-		Scalar hsvColor = Core.sumElems(touchedRegionHsv);;
+		Scalar hsvColor = Core.sumElems(touchedRegionHsv);
+		;
 		int pointCount = touchedRect.width * touchedRect.height;
 		for (int i = 0; i < hsvColor.val.length; i++)
 			hsvColor.val[i] /= pointCount;
-		
-		//tolerances
-		Scalar mColorRadius = new Scalar(FOREGROUND_TOLERANCE_H, FOREGROUND_TOLERANCE_S, FOREGROUND_TOLERANCE_V, 0);
-		
-		double minH = (hsvColor.val[0] - mColorRadius.val[0] > 0) 	? hsvColor.val[0] - mColorRadius.val[0]
-																	: 255 - hsvColor.val[0] - mColorRadius.val[0];
-		double maxH = (hsvColor.val[0] + mColorRadius.val[0] < 255) ? hsvColor.val[0] + mColorRadius.val[0]
-																	: hsvColor.val[0] + mColorRadius.val[0] - 255;
+
+		// tolerances
+		Scalar mColorRadius = new Scalar(FOREGROUND_TOLERANCE_H,
+				FOREGROUND_TOLERANCE_S, FOREGROUND_TOLERANCE_V, 0);
+
+		double minH = (hsvColor.val[0] - mColorRadius.val[0] > 0) ? hsvColor.val[0]
+				- mColorRadius.val[0]
+				: 255 - hsvColor.val[0] - mColorRadius.val[0];
+		double maxH = (hsvColor.val[0] + mColorRadius.val[0] < 255) ? hsvColor.val[0]
+				+ mColorRadius.val[0]
+				: hsvColor.val[0] + mColorRadius.val[0] - 255;
 
 		Mat mPyrDownMat = new Mat();
 		Mat mHsvMat = new Mat();
@@ -238,7 +154,7 @@ public class ColorTrackingUtil {
 		Imgproc.pyrDown(image, mPyrDownMat);
 		Imgproc.pyrDown(mPyrDownMat, mPyrDownMat);
 		Imgproc.cvtColor(mPyrDownMat, mHsvMat, Imgproc.COLOR_RGB2HSV_FULL);
-		
+
 		// get binary image from ranges
 		Scalar mLowerBound = new Scalar(0);
 		Scalar mUpperBound = new Scalar(0);
@@ -248,8 +164,8 @@ public class ColorTrackingUtil {
 		mUpperBound.val[2] = hsvColor.val[2] + mColorRadius.val[2];
 		mLowerBound.val[3] = 0;
 		mUpperBound.val[3] = 255;
-		
-		if(minH < maxH) {
+
+		if (minH < maxH) {
 			mLowerBound.val[0] = minH;
 			mUpperBound.val[0] = maxH;
 			Core.inRange(mHsvMat, mLowerBound, mUpperBound, mMask);
@@ -260,23 +176,24 @@ public class ColorTrackingUtil {
 			mLowerBound.val[0] = minH;
 			mUpperBound.val[0] = 255;
 			Core.inRange(mHsvMat, mLowerBound, mUpperBound, min);
-			
+
 			mLowerBound.val[0] = 0;
 			mUpperBound.val[0] = maxH;
 			Core.inRange(mHsvMat, mLowerBound, mUpperBound, max);
-			
+
 			Core.bitwise_or(min, max, mMask);
 		}
 		mDilatedMask = ColorTrackingUtil.segment(mMask);
 
 		// finding contours in image
 		List<MatOfPoint> contours = new ArrayList<MatOfPoint>();
-		Imgproc.findContours(mDilatedMask, contours, mHierarchy,Imgproc.RETR_EXTERNAL, Imgproc.CHAIN_APPROX_SIMPLE);	
+		Imgproc.findContours(mDilatedMask, contours, mHierarchy,
+				Imgproc.RETR_EXTERNAL, Imgproc.CHAIN_APPROX_SIMPLE);
 
 		// Find max contour area
 		double maxArea = 0;
 		MatOfPoint biggest = null;
-		for(MatOfPoint c : contours) {
+		for (MatOfPoint c : contours) {
 			double area = Imgproc.contourArea(c);
 			if (area > maxArea) {
 				maxArea = area;
@@ -285,12 +202,12 @@ public class ColorTrackingUtil {
 			}
 		}
 
-		Mat cli = null;	
-		if(biggest != null) 
+		Mat cli = null;
+		if (biggest != null)
 			cli = image.submat(Imgproc.boundingRect(biggest));
-		
+
 		// releasing memory
-		for(MatOfPoint c : contours)
+		for (MatOfPoint c : contours)
 			c.release();
 		touchedRegionRgba.release();
 		touchedRegionHsv.release();
@@ -303,7 +220,7 @@ public class ColorTrackingUtil {
 
 		return cli;
 	}
-	
+
 	/**
 	 * Segments the image with eroding, dilating and smoothing.
 	 * 
@@ -312,13 +229,11 @@ public class ColorTrackingUtil {
 	 * @return Segmented image.
 	 */
 	public static Mat segment(Mat img) {
-		Mat copy = img.clone();
+		Imgproc.erode(img, img, new Mat());
+		Imgproc.dilate(img, img, new Mat());
+		Imgproc.medianBlur(img, img, BLUR_FACTOR);
 
-		Imgproc.erode(copy, copy, new Mat());
-		Imgproc.dilate(copy, copy, new Mat());
-		Imgproc.medianBlur(copy, copy, BLUR_FACTOR);
-
-		return copy;
+		return img;
 	}
 
 	/**
@@ -337,37 +252,122 @@ public class ColorTrackingUtil {
 		return segments;
 	}
 
-	public static boolean hasCoordFormat(String value) {
-		
-		try {
-			String[] vals = value.split(":");
-			if (vals.length != 2)
-				return false;
-			
-			Double.parseDouble(vals[0]);
-			Double.parseDouble(vals[1]);
-		} catch(Exception e) {
-			return false;
+	public static List<TrackedColor> detectColor(Mat img, Color color,
+			Scalar tolerance) {
+
+		if (img == null || tolerance == null)
+			return null;
+
+		Mat imgHsv = img.clone();
+
+		Scalar lowerBound = new Scalar(color.hsv().val[0] - tolerance.val[0],
+				color.hsv().val[1] - tolerance.val[1], color.hsv().val[2]
+						- tolerance.val[2]);
+		Scalar upperBound = new Scalar(color.hsv().val[0] + tolerance.val[0],
+				color.hsv().val[1] + tolerance.val[1], color.hsv().val[2]
+						+ tolerance.val[2]);
+
+		Mat imgBinary = new Mat();
+		Core.inRange(imgHsv, lowerBound, upperBound, imgBinary);
+
+		List<MatOfPoint> contours = new ArrayList<MatOfPoint>();
+		Imgproc.erode(imgBinary, imgBinary, new Mat());
+		Imgproc.medianBlur(imgBinary, imgBinary, BLUR_FACTOR);
+		Imgproc.findContours(imgBinary, contours, new Mat(),
+				Imgproc.RETR_EXTERNAL, Imgproc.CHAIN_APPROX_SIMPLE);
+
+		// fill blobs
+		List<TrackedColor> detected = new ArrayList<TrackedColor>();
+		for (MatOfPoint m : contours) {
+			Core.multiply(m, new Scalar(4, 4), m);
+			TrackedColor c = new TrackedColor(color, Imgproc.boundingRect(m));
+			if (c.getBorders().area() >= DETECTION_AREA_MIN)
+				detected.add(c);
 		}
-		
-		return true;
+
+		imgHsv.release();
+		imgBinary.release();
+
+		return detected;
 	}
-	
-	public static Point parseCoords(String s) {
-		if(!hasCoordFormat(s))
+
+	public static Map<Color, List<TrackedColor>> detectColors(Mat rgba) {
+		if (rgba == null)
 			return null;
-		
-		Point p = null;
-		try {
-			String[] vals = s.split(":");
-			if (vals.length != 2)
-				return null;
-			
-			p = new Point(Double.parseDouble(vals[0]), Double.parseDouble(vals[1]));
-		} catch(Exception e) {
-			return null;
+
+		Mat rgb = new Mat();
+		Mat hsv = new Mat();
+
+		Imgproc.cvtColor(rgba, rgb, Imgproc.COLOR_RGBA2RGB);
+		Imgproc.pyrDown(rgb, rgb);
+		Imgproc.pyrDown(rgb, rgb);
+		Imgproc.cvtColor(rgb, hsv, Imgproc.COLOR_RGB2HSV);
+
+		Map<Color, List<TrackedColor>> detectedObjects = new HashMap<Color, List<TrackedColor>>();
+		for (Color c : Color.values()) {
+			List<TrackedColor> l = ColorTrackingUtil.detectColor(hsv, c,
+					ColorTrackingUtil.DEFAULT_TOL_HSV);
+
+			if (l != null && l.size() > 0)
+				detectedObjects.put(c, l);
 		}
+
+		rgb.release();
+		hsv.release();
+
+		return detectedObjects;
+	}
+
+	public static Mat drawTrackedColors(Mat image,
+			Map<Color, List<TrackedColor>> trackedColors) {
+		if (image == null || trackedColors == null)
+			return null;
+
+		for (Color c : trackedColors.keySet()) {
+			for (TrackedColor t : trackedColors.get(c)) {
+				Rect rect = t.getBorders();
+				Core.rectangle(image, new Point(rect.x, rect.y), new Point(
+						rect.x + rect.width, rect.y + rect.height), c.rgb(),
+						TRACKED_RECT_THICKNESS);
+			}
+		}
+
+		return image;
+	}
+
+	// Not HSV full!!
+	public static Scalar convertRGB2HSV(Scalar rgb) {
+		double r, g, b, m, n, h0, h, s, v;
+
+		r = rgb.val[0] / 255.0;
+		g = rgb.val[1] / 255.0;
+		b = rgb.val[2] / 255.0;
+
+		m = Math.max(r, Math.max(g, b));
+		n = Math.min(r, Math.min(g, b));
+
+		if (m == r)
+			h0 = 30 * (g - b) / (m - n);
+		else if (m == g)
+			h0 = 30 * (2 + (b - r) / (m - n));
+		else if (m == b)
+			h0 = 30 * (4 + (r - g) / (m - n));
+		else
+			// m == n
+			h0 = 0;
+
+		if (h0 < 0)
+			h = h0 + 180;
+		else
+			h = h0;
+
+		if (m == 0)
+			s = 0;
+		else
+			s = 255 * (m - n) / m;
+
+		v = 255 * m;
 		
-		return p;
+		return new Scalar(h, s, v);
 	}
 }
