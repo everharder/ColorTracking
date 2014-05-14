@@ -198,6 +198,16 @@ public class MainActivity extends Activity implements CvCameraViewListener2,
 
 		//if(trackingEnabled && enviroment.getHomography() != null) {
 		if(trackingEnabled) {	
+			Core.putText(
+					image,
+					"color: "
+							+ String.valueOf(image.get((int) (RES_DISP_W / 2), (int) (RES_DISP_H / 2))[0]) + " | " 
+							+ String.valueOf(image.get((int) (RES_DISP_W / 2), (int) (RES_DISP_H / 2))[1]) + " | "
+							+ String.valueOf(image.get((int) (RES_DISP_W / 2), (int) (RES_DISP_H / 2))[2]),
+					new Point(RES_DISP_H / 2, RES_DISP_W / 2),
+					Core.FONT_HERSHEY_SIMPLEX, 1, new Scalar(
+							255,255,255));
+			
 			Map<Color, List<TrackedColor>> trackedColors = ColorTrackingUtil.detectColors(image);
 			image = ColorTrackingUtil.drawTrackedColors(image, trackedColors);
 			if(image == null)

@@ -17,13 +17,13 @@ import org.opencv.core.Size;
 import org.opencv.imgproc.Imgproc;
 
 public class ColorTrackingUtil {
-	private static final int BLUR_FACTOR = 11; // needs to be odd
+	private static final int BLUR_FACTOR = 7; // needs to be odd
 	public static int FOREGROUND_TOLERANCE_H = 25;
 	public static int FOREGROUND_TOLERANCE_S = 50;
 	public static int FOREGROUND_TOLERANCE_V = 50;
 
 	public static final Scalar DEFAULT_TOL_HSV = new Scalar(10, 120, 120);
-	private static final double DETECTION_AREA_MIN = 500;
+	private static final double DETECTION_AREA_MIN = 1000;
 	private static final int TRACKED_RECT_THICKNESS = 3;
 
 	/**
@@ -116,7 +116,6 @@ public class ColorTrackingUtil {
 
 		List<MatOfPoint> contours = new ArrayList<MatOfPoint>();
 		Imgproc.dilate(imgBinary, imgBinary, new Mat());
-		Imgproc.medianBlur(imgBinary, imgBinary, BLUR_FACTOR);
 		Imgproc.findContours(imgBinary, contours, new Mat(),
 				Imgproc.RETR_EXTERNAL, Imgproc.CHAIN_APPROX_SIMPLE);
 
