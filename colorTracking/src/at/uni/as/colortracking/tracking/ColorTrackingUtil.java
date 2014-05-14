@@ -22,8 +22,8 @@ public class ColorTrackingUtil {
 	public static int FOREGROUND_TOLERANCE_S = 50;
 	public static int FOREGROUND_TOLERANCE_V = 50;
 
-	public static final Scalar DEFAULT_TOL_HSV = new Scalar(7, 100, 100);
-	private static final double DETECTION_AREA_MIN = 750;
+	public static final Scalar DEFAULT_TOL_HSV = new Scalar(10, 125, 125);
+	private static final double DETECTION_AREA_MIN = 500;
 	private static final int TRACKED_RECT_THICKNESS = 3;
 
 	/**
@@ -254,15 +254,11 @@ public class ColorTrackingUtil {
 
 	public static List<TrackedColor> detectColor(Mat img, Color color,
 			Scalar tolerance) {
-		Mat imgRgb = null;
 
 		if (img == null || tolerance == null)
 			return null;
 
-		imgRgb = img.clone();
-
-		Mat imgHsv = new Mat();
-		Imgproc.cvtColor(imgRgb, imgHsv, Imgproc.COLOR_RGB2HSV);
+		Mat imgHsv = img.clone();
 
 		Scalar lowerBound = new Scalar(color.hsv().val[0] - tolerance.val[0],
 				color.hsv().val[1] - tolerance.val[1], color.hsv().val[2]
@@ -275,7 +271,7 @@ public class ColorTrackingUtil {
 		Core.inRange(imgHsv, lowerBound, upperBound, imgBinary);
 
 		List<MatOfPoint> contours = new ArrayList<MatOfPoint>();
-		Imgproc.dilate(imgBinary, imgBinary, new Mat());
+		Imgproc.erode(imgBinary, imgBinary, new Mat());
 		Imgproc.medianBlur(imgBinary, imgBinary, BLUR_FACTOR);
 		Imgproc.findContours(imgBinary, contours, new Mat(),
 				Imgproc.RETR_EXTERNAL, Imgproc.CHAIN_APPROX_SIMPLE);
@@ -289,7 +285,6 @@ public class ColorTrackingUtil {
 				detected.add(c);
 		}
 
-		imgRgb.release();
 		imgHsv.release();
 		imgBinary.release();
 
@@ -306,7 +301,7 @@ public class ColorTrackingUtil {
 		Imgproc.cvtColor(rgba, rgb, Imgproc.COLOR_RGBA2RGB);
 		Imgproc.pyrDown(rgb, rgb);
 		Imgproc.pyrDown(rgb, rgb);
-		Imgproc.cvtColor(rgb, hsv, Imgproc.COLOR_RGB2HSV_FULL);
+		Imgproc.cvtColor(rgb, hsv, Imgproc.COLOR_RGB2HSV);
 
 		Map<Color, List<TrackedColor>> detectedObjects = new HashMap<Color, List<TrackedColor>>();
 		for (Color c : Color.values()) {

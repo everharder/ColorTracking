@@ -5,7 +5,6 @@ import org.opencv.core.Scalar;
 public enum Color {
 	RED		(new Scalar(255,   0,   0)),
 	BLUE	(new Scalar(  0,   0, 255)),
-	GREEN	(new Scalar(  0, 255,   0)),
 	YELLOW	(new Scalar(255, 255,   0)),
 	WHITE	(new Scalar(255, 255, 255));
 	
