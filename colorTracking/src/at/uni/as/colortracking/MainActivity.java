@@ -129,10 +129,10 @@ public class MainActivity extends Activity implements CvCameraViewListener2,
 		Log.i(TAG, "called onOptionsItemSelected; selected item: " + item);
 
 		if (item == this.menuToggleTracking) {
-			if(enviroment.getHomography() == null) {
+			/*if(enviroment.getHomography() == null) {
 				Toast.makeText(this, "no homography", Toast.LENGTH_SHORT).show();
 				return true;
-			}
+			}*/
 
 			if (trackingEnabled) {
 				trackingEnabled = false;
@@ -196,14 +196,15 @@ public class MainActivity extends Activity implements CvCameraViewListener2,
 	public Mat onCameraFrame(CvCameraViewFrame inputFrame) {
 		Mat image = inputFrame.rgba();
 
-		if(trackingEnabled && enviroment.getHomography() != null) {			
+		//if(trackingEnabled && enviroment.getHomography() != null) {
+		if(trackingEnabled) {	
 			Map<Color, List<TrackedColor>> trackedColors = ColorTrackingUtil.detectColors(image);
 			image = ColorTrackingUtil.drawTrackedColors(image, trackedColors);
 			if(image == null)
 				return inputFrame.rgba();
 			
-			Point position = RobotEnviroment.calcPosition(RobotEnviroment.extractBeacons(trackedColors), enviroment.getHomography());
-			robot.setPosition(position);
+			//Point position = RobotEnviroment.calcPosition(RobotEnviroment.extractBeacons(trackedColors), enviroment.getHomography());
+			//robot.setPosition(position);
 			
 			// draw robot coordinates on screen
 			if (robot.getPosition() != null) {
