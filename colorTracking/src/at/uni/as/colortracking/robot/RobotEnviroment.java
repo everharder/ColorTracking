@@ -20,7 +20,8 @@ public class RobotEnviroment {
 	public static final double MAX_Y = 100;
 	public static final double HALFWAY_Y = 50;
 	public static final double HALFWAY_X = 50;
-	private static final double MAX_BEACON_STRIP_DIST_PXL = 20;
+	private static final double MAX_BEACON_STRIP_DIST_PXL_Y= 75;
+	private static final double MAX_BEACON_STRIP_DIST_PXL_X = 150;
 	
 	private Mat homography = null;
 
@@ -44,7 +45,7 @@ public class RobotEnviroment {
 			
 			for(TrackedColor u : upperColor) {
 				for(TrackedColor l : lowerColor) {
-					if(Math.abs(l.getBorders().x - u.getBorders().x) < MAX_BEACON_STRIP_DIST_PXL && (l.getBorders().y - (u.getBorders().y + u.getBorders().height)) < MAX_BEACON_STRIP_DIST_PXL) {
+					if((l.getBorders().y - (u.getBorders().y + u.getBorders().height) < MAX_BEACON_STRIP_DIST_PXL_Y) && Math.abs(l.getBorders().x + l.getBorders().width - u.getBorders().x) < MAX_BEACON_STRIP_DIST_PXL_X) {
 						beacons.add(new TrackedBeacon(b, u, l));
 						beaconDetected = true;
 					}

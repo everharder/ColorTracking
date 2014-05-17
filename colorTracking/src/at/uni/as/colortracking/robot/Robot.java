@@ -157,6 +157,8 @@ public class Robot{
 			Thread.sleep(t);
 		} catch (InterruptedException e) {
 		}
+		
+		stop();
 	}
 		
 	// turn left
@@ -167,6 +169,7 @@ public class Robot{
 			Thread.sleep(t);
 		} catch (InterruptedException e) {
 		}
+		stop();
 	}
 		
 		// turn right
@@ -177,6 +180,7 @@ public class Robot{
 			Thread.sleep(t);
 		} catch (InterruptedException e) {
 		}
+		stop();
 	}
 
 	// turn left
