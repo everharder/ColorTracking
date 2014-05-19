@@ -22,11 +22,11 @@ public class Robot {
 
 	@SuppressWarnings("unused")
 	private static final double CATCH_DIST = 25.0;
-	private static final double COORDS_TOLERANCE = 5.0;
+	private static final double COORDS_TOLERANCE = 10.0;
 	
-	public static final int DEFAULT_VELOCITY = 15;
-	public static final int DEFAULT_MOVE_TIME = 600; //ms
-	public static final int BEACONNOTFOUND_DELAY = 2000; //ms
+	public static final int DEFAULT_VELOCITY = 5;
+	public static final int DEFAULT_MOVE_TIME = 500; //ms
+	public static final int BEACONNOTFOUND_DELAY = 500; //ms
 	private FTDriver com;
 
 	private Point position = null;
@@ -307,7 +307,7 @@ public class Robot {
 			double deltaYOld = Math.abs( positionOld.y - target.y );
 
 			if ( deltaX < deltaXOld && deltaY < deltaYOld ) {
-				moveForward( DEFAULT_VELOCITY, DEFAULT_MOVE_TIME );
+				moveForward( (int) (Math.sqrt(Math.pow(deltaX, 2) + Math.pow(deltaY, 2)) * 0.9), 1000 );
 			} else {
 				moveBackward( DEFAULT_VELOCITY, DEFAULT_MOVE_TIME );
 				turnLeft( DEFAULT_VELOCITY, DEFAULT_MOVE_TIME );

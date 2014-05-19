@@ -163,7 +163,7 @@ public class RobotEnviroment {
 		if(detectedObjects == null)
 			return null;
 		
-		List<TrackedColor> ballColors = detectedObjects.get(Color.GREEN);
+		List<TrackedColor> ballColors = detectedObjects.get(Color.RED); //TODO: GREEN
 		TrackedBall ball = null;
 		
 		if(ballColors == null)
