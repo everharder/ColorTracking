@@ -9,9 +9,9 @@ public enum Beacon {
 	RED_YELLOW	(Color.RED, 	Color.YELLOW, 	new Point(RobotEnviroment.MAX_X, RobotEnviroment.MAX_Y)),
 	YELLOW_BLUE	(Color.YELLOW, 	Color.BLUE, 	new Point(RobotEnviroment.MIN_X, RobotEnviroment.MIN_Y)),
 	RED_BLUE	(Color.RED, 	Color.BLUE, 	new Point(RobotEnviroment.HALFWAY_X, RobotEnviroment.MIN_Y)),
-	YELLOW_RED	(Color.YELLOW, 	Color.RED, 		new Point(RobotEnviroment.MAX_X, RobotEnviroment.MIN_Y)),
-	WHITE_BLUE	(Color.WHITE, 	Color.BLUE, 	new Point(RobotEnviroment.MIN_X, RobotEnviroment.HALFWAY_Y)),
-	WHITE_RED	(Color.WHITE, 	Color.RED, 		new Point(RobotEnviroment.MAX_X, RobotEnviroment.HALFWAY_Y));
+	//WHITE_BLUE	(Color.WHITE, 	Color.BLUE, 	new Point(RobotEnviroment.MIN_X, RobotEnviroment.HALFWAY_Y)),
+	//WHITE_RED	(Color.WHITE, 	Color.RED, 		new Point(RobotEnviroment.MAX_X, RobotEnviroment.HALFWAY_Y));
+	YELLOW_RED	(Color.YELLOW, 	Color.RED, 		new Point(RobotEnviroment.MAX_X, RobotEnviroment.MIN_Y));
 	
 	private final Color upperColor;
 	private final Color lowerColor;

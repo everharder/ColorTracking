@@ -17,7 +17,7 @@ public class TrackedColor {
 		this.borders = borders;
 		
 		if(borders != null)
-			bottom = new Point(borders.x + borders.width, borders.y + borders.height / 2);
+			bottom = new Point(borders.x + borders.width / 2, borders.y + borders.height);
 	}
 	
 	public Color getColor() {
@@ -51,7 +51,7 @@ public class TrackedColor {
 		// Real world point.
 		Point dest = new Point(dst.get(0, 0)[1], dst.get(0, 0)[0]);
 		// Calc distance with scalar product.
-		distance = Math.sqrt(Math.pow(dest.x, 2) + Math.pow(dest.y, 2));
+		distance = Math.sqrt(Math.pow(dest.x, 2) + Math.pow(dest.y, 2)) / 10.0;
 
 		src.release();
 		dst.release();

@@ -1,5 +1,6 @@
 package at.uni.as.colortracking;
 
+import java.text.DecimalFormat;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
@@ -138,11 +139,6 @@ public class MainActivity extends Activity implements CvCameraViewListener2,
 		Log.i(TAG, "called onOptionsItemSelected; selected item: " + item);
 
 		if (item == this.menuToggleTracking) {
-			if(enviroment.getHomography() == null) {
-				Toast.makeText(this, "no homography", Toast.LENGTH_SHORT).show();
-				return true;
-			}
-
 			if (trackingEnabled) {
 				trackingEnabled = false;
 				Toast.makeText(this, "stopped tracking", Toast.LENGTH_SHORT).show();
@@ -243,7 +239,7 @@ public class MainActivity extends Activity implements CvCameraViewListener2,
 			}
 		} else if(trackingEnabled) {	
 			Map<Color, List<TrackedColor>> trackedColors = ColorTrackingUtil.detectColors(image);
-			image = ColorTrackingUtil.drawTrackedColors(image, trackedColors);
+			image = ColorTrackingUtil.drawTrackedColors(image, trackedColors, enviroment.getHomography());
 			if(image == null)
 				return inputFrame.rgba();
 			
@@ -257,9 +253,9 @@ public class MainActivity extends Activity implements CvCameraViewListener2,
 			// draw robot coordinates on screen
 			if (robot.getPosition() != null) {
 				screenInfo.append("Robot-Position: ");
-				screenInfo.append(robot.getPosition().x);
+				screenInfo.append(new DecimalFormat("#0.00").format(robot.getPosition().x));
 				screenInfo.append("|");
-				screenInfo.append(robot.getPosition().y);
+				screenInfo.append(new DecimalFormat("#0.00").format(robot.getPosition().y));
 				screenInfo.append("\n\n");
 			}
 			
