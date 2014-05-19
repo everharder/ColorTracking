@@ -10,6 +10,7 @@ import org.opencv.core.Point;
 import at.uni.as.colortracking.tracking.Beacon;
 import at.uni.as.colortracking.tracking.Color;
 import at.uni.as.colortracking.tracking.ColorTrackingUtil;
+import at.uni.as.colortracking.tracking.TrackedBall;
 import at.uni.as.colortracking.tracking.TrackedBeacon;
 import at.uni.as.colortracking.tracking.TrackedColor;
 
@@ -156,6 +157,27 @@ public class RobotEnviroment {
 		}
 
 		return robot;
+	}
+	
+	public static TrackedBall findBall(Map<Color, List<TrackedColor>> detectedObjects) {
+		if(detectedObjects == null)
+			return null;
+		
+		List<TrackedColor> ballColors = detectedObjects.get(Color.GREEN);
+		TrackedBall ball = null;
+		
+		if(ballColors == null)
+			return null;
+		
+		for(TrackedColor c : ballColors) {
+			if(c.getBorders().height < MAX_BEACON_STRIP_DIST_PXL_Y && c.getBorders().width < MAX_BEACON_STRIP_DIST_PXL_X / 2) {
+				ball = new TrackedBall();
+				ball.setBallColor( c );
+				break;
+			}
+		}
+		
+		return ball;
 	}
 	
 	public Mat getHomography() {

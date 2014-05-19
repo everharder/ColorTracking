@@ -39,6 +39,7 @@ import at.uni.as.colortracking.robot.Robot;
 import at.uni.as.colortracking.robot.RobotEnviroment;
 import at.uni.as.colortracking.tracking.Color;
 import at.uni.as.colortracking.tracking.ColorTrackingUtil;
+import at.uni.as.colortracking.tracking.TrackedBall;
 import at.uni.as.colortracking.tracking.TrackedBeacon;
 import at.uni.as.colortracking.tracking.TrackedColor;
 
@@ -62,6 +63,7 @@ public class MainActivity extends Activity implements CvCameraViewListener2,
 
 	// flags
 	private boolean trackingEnabled = false;
+	private boolean catchingEnabled = false;
 	private boolean calcHomography = false;
 	
 	
@@ -155,13 +157,15 @@ public class MainActivity extends Activity implements CvCameraViewListener2,
 			calcHomography = true;
 		} else if (item == this.menuCatchObject) {
 			if (robot != null) {
-				if (robot.isCatchObjectEnabled()) {
-					robot.setCatchObjectEnabled(false);
+				if (catchingEnabled) {
+					catchingEnabled = false;
 
 					Toast.makeText(this, "catch object disabled",Toast.LENGTH_SHORT).show();
 				} else {
-					robot.setCatchObjectEnabled(true);
-
+					catchingEnabled = true;
+					if(robot.isConnected())
+						robot.barUp();
+					
 					Toast.makeText(this, "catch object enabled",Toast.LENGTH_SHORT).show();
 
 					if (robot.isMoveToCoordsEnabled()) {
@@ -169,6 +173,7 @@ public class MainActivity extends Activity implements CvCameraViewListener2,
 						Toast.makeText(getApplicationContext(),"MoveTo mode disabled!", Toast.LENGTH_SHORT).show();
 					}
 				}
+				robot.setCatchObjectEnabled(catchingEnabled);
 			}
 		} else if (item == this.menuMoveTo) {
 			final EditText input = new EditText(this);
@@ -272,12 +277,26 @@ public class MainActivity extends Activity implements CvCameraViewListener2,
 				screenInfo.append("\n");
 			}
 			
+			if (catchingEnabled) {
+				TrackedBall ball = RobotEnviroment.findBall( trackedColors );
+				
+				if(ball != null) {
+					ball.calcDistance( enviroment.getHomography() );
+					robot.setBall( ball );
+					screenInfo.append("\nBALL FOUND, distance: " + ball.getDistance() + "\n");
+				} else {
+					robot.setBall( ball );
+					screenInfo.append("\nNO BALL FOUND\n");
+				}
+					
+			}
+			
 			printInfo(image, screenInfo.toString(), 0, 20);
 			
 			if (robot != null && robot.isConnected()) {				
 				robot.move();
 			}
-		}
+		} 
 
 		return image;
 	}
