@@ -23,8 +23,8 @@ public class Robot{
 	private static final double CATCH_DIST = 25.0;
 	private static final double COORDS_TOLERANCE = 5.0;
 	
-	public static final int DEFAULT_VELOCITY = 10;
-	public static final int DEFAULT_MOVE_TIME = 250; //ms
+	public static final int DEFAULT_VELOCITY = 15;
+	public static final int DEFAULT_MOVE_TIME = 750; //ms
 	public static final int BEACONNOTFOUND_DELAY = 1000; //ms
 	
 	private FTDriver com;
