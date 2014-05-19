@@ -6,8 +6,9 @@ public enum Color {
 	RED		(new Scalar(250,  50,  40), new Scalar( 5,  40,  40)),
 	BLUE	(new Scalar( 20,  10,  30), new Scalar( 5,  40,  40)),
 	YELLOW	(new Scalar(175, 190, 110), new Scalar( 5,  40,  40)),
-	WHITE	(new Scalar(215, 190, 150), new Scalar( 0,  15,  15));
-	
+	WHITE	(new Scalar(215, 190, 150), new Scalar( 0,  15,  15)),
+	GREEN   (new Scalar(0, 120, 70), new Scalar(10, 60, 60));
+
 	private Scalar hsv;
 	private Scalar rgb;
 	private final Scalar tol;
