@@ -16,13 +16,13 @@ import at.uni.as.colortracking.tracking.TrackedColor;
 
 public class RobotEnviroment {
 	public static final double MIN_X = 0;
-	public static final double MAX_X = 100;
+	public static final double MAX_X = 120;
 	public static final double MIN_Y = 0;
-	public static final double MAX_Y = 100;
-	public static final double HALFWAY_Y = 50;
-	public static final double HALFWAY_X = 50;
-	private static final double MAX_BEACON_STRIP_DIST_PXL_Y= 75;
-	private static final double MAX_BEACON_STRIP_DIST_PXL_X = 150;
+	public static final double MAX_Y = 120;
+	public static final double HALFWAY_Y = 60;
+	public static final double HALFWAY_X = 60;
+	private static final double MAX_BEACON_STRIP_DIST_PXL_Y= 100;
+	private static final double MAX_BEACON_STRIP_DIST_PXL_X = 100;
 	
 	private Mat homography = null;
 
@@ -46,7 +46,7 @@ public class RobotEnviroment {
 			
 			for(TrackedColor u : upperColor) {
 				for(TrackedColor l : lowerColor) {
-					if((l.getBorders().y - (u.getBorders().y + u.getBorders().height) < MAX_BEACON_STRIP_DIST_PXL_Y) && Math.abs(l.getBorders().x + l.getBorders().width - u.getBorders().x) < MAX_BEACON_STRIP_DIST_PXL_X) {
+					if((l.getBorders().y - (u.getBorders().y + u.getBorders().height) < MAX_BEACON_STRIP_DIST_PXL_Y) && l.getBorders().y > u.getBorders().y && l.getBorders().y - (u.getBorders().y + u.getBorders().height - MAX_BEACON_STRIP_DIST_PXL_Y) > 0 && Math.abs(l.getBorders().x - u.getBorders().x) < MAX_BEACON_STRIP_DIST_PXL_X) {
 						beacons.add(new TrackedBeacon(b, u, l));
 						beaconDetected = true;
 					}

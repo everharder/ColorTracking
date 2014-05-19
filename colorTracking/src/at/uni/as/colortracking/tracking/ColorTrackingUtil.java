@@ -161,7 +161,7 @@ public class ColorTrackingUtil {
 	}
 
 	public static Mat drawTrackedColors(Mat image,
-			Map<Color, List<TrackedColor>> trackedColors) {
+			Map<Color, List<TrackedColor>> trackedColors, Mat homography) {
 		if (image == null || trackedColors == null)
 			return null;
 
@@ -171,10 +171,19 @@ public class ColorTrackingUtil {
 				Core.rectangle(image, new Point(rect.x, rect.y), new Point(
 						rect.x + rect.width, rect.y + rect.height), c.rgb(),
 						TRACKED_RECT_THICKNESS);
+				
+				if(homography != null) {
+					t.calcDistance(homography);
+					Core.putText(image, String.valueOf(t.getDistance()), new Point(t.getBottom().x - 10, t.getBottom().y - 20), Core.FONT_HERSHEY_SIMPLEX, 0.5, new Scalar(255.0, 255.0, 255.0));
+				}
 			}
 		}
 
 		return image;
+	}
+	
+	public static Mat drawTrackedColors(Mat image, Map<Color, List<TrackedColor>> trackedColors) {
+		return drawTrackedColors(image, trackedColors, null);
 	}
 
 	// Not HSV full!!
