@@ -4,9 +4,6 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
-import org.opencv.core.Core;
-import org.opencv.core.Mat;
-import org.opencv.core.Point;
 import org.opencv.core.Scalar;
 
 import at.uni.as.colortracking.robot.Robot;
@@ -43,17 +40,16 @@ public class BallCatcher {
 
 		if ( ball != null ) {
 			if ( environment.getHomography() != null ) ball.calcDistance( environment.getHomography() );
-			statusColor.add( new Scalar( 0.0, 255.0, 0.0 ) );
-			statusMessage.add( "BALL FOUND" );
+			ScreenInfo.getInstance().add( "BALL IN VIEW", ScreenInfo.POS_BOTTOM_RIGHT, 4, ScreenInfo.COLOR_GREEN );
 			initalBallFound = true;
 			ballInView = true;
 		} else {
 			statusColor.add( new Scalar( 255.0, 0.0, 0.0 ) );
-			statusMessage.add( "NO BALL" );
+			ScreenInfo.getInstance().add( "NO BALL", ScreenInfo.POS_BOTTOM_RIGHT, 4, ScreenInfo.COLOR_RED );
 			ballInView = false;
 		}
-		
-		if(initalBallFound) {
+
+		if ( initalBallFound ) {
 			if ( !centered && !done ) {
 				// if the ball was found, first move left, until ball is out of view, then move right until ball is out of view, half way back and the robot looks directly at the ball
 				alignToBall();
@@ -67,16 +63,8 @@ public class BallCatcher {
 		}
 	}
 
-	public void printStatus( Mat image ) {
-		int length = statusMessage.size();
-		for ( int i = length - 1; i >= 0; i-- ) {
-			Core.putText( image, statusMessage.remove( i ), new Point( image.width() / 2, image.height() - ((i + 1) * 150) ), Core.FONT_HERSHEY_SIMPLEX, 5, statusColor.remove( i ) );
-		}
-	}
-
 	private void alignToBall() {
-		statusColor.add( new Scalar( 0.0, 0.0, 255.0 ) );
-		statusMessage.add( "CENTERING..." );
+		ScreenInfo.getInstance().add( "CENTERING...", ScreenInfo.POS_BOTTOM_RIGHT, 4, ScreenInfo.COLOR_BLUE );
 
 		if ( !movedLeft && ballInView && !centered ) { // move left as long as we see the ball
 			robot.turnLeft( MOVE_STEP_SIZE, MOVE_TIME );
@@ -93,27 +81,23 @@ public class BallCatcher {
 				left += MOVE_STEP_SIZE;
 			} else {
 				centered = true;
-				statusColor.add( new Scalar( 0.0, 255.0, 255.0 ) );
-				statusMessage.add( "CENTERED!" );
+				ScreenInfo.getInstance().add( "CENTERED", ScreenInfo.POS_BOTTOM_RIGHT, 4, ScreenInfo.COLOR_BLUE );
 			}
 		}
 	}
 
 	private void moveToBall() {
-		if(ballInView) {
-			statusColor.add( new Scalar( 0.0, 0.0, 255.0 ) );
-			statusMessage.add( "MOVING..." );
-			
+		if ( ballInView ) {
+			ScreenInfo.getInstance().add( "MOVING...", ScreenInfo.POS_BOTTOM_RIGHT, 4, ScreenInfo.COLOR_BLUE );
+
 			if ( ball.getDistance() < MIN_DISTANCE ) {
-				statusColor.add( new Scalar( 255.0, 255.0, 255.0 ) );
-				statusMessage.add( "READY TO CATCH!" );
+				ScreenInfo.getInstance().add( "READY TO CATCH...", ScreenInfo.POS_BOTTOM_RIGHT, 4, ScreenInfo.COLOR_BLUE );
 				readyToCatch = true;
 			} else {
 				robot.moveForward( MOVE_STEP_SIZE, MOVE_TIME );
 			}
 		} else {
-			statusColor.add( new Scalar( 255.0, 0.0, 0.0 ) );
-			statusMessage.add( "BALL LOST..." );
+			ScreenInfo.getInstance().add( "BALL LOST...", ScreenInfo.POS_BOTTOM_RIGHT, 4, ScreenInfo.COLOR_RED );
 		}
 	}
 
@@ -127,7 +111,7 @@ public class BallCatcher {
 		}
 		robot.ledOff();
 	}
-	
+
 	public boolean isDone() {
 		return done;
 	}
