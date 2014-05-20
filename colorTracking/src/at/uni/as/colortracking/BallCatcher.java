@@ -26,13 +26,17 @@ public class BallCatcher {
 	boolean done = false;
 	int left;
 	int right;
-
+	float imageWidth;
+	float imageHeight;
+	
 	private static final int MOVE_TIME = 1;
 	private static final int MOVE_STEP_SIZE = 1;
 	private static final double MIN_DISTANCE = 200; // mm
 
-	public BallCatcher(Robot robot) {
+	public BallCatcher(Robot robot, float cAMERA_W, float cAMERA_H) {
 		this.robot = robot;
+		this.imageHeight = cAMERA_H;
+		this.imageWidth = cAMERA_W;
 	}
 
 	public void catchBall( RobotEnviroment environment, Map<Color, List<TrackedColor>> trackedColors ) {
@@ -65,25 +69,20 @@ public class BallCatcher {
 
 	private void alignToBall() {
 		ScreenInfo.getInstance().add( "CENTERING...", ScreenInfo.POS_BOTTOM_RIGHT, 4, ScreenInfo.COLOR_BLUE );
-
-		if ( !movedLeft && ballInView && !centered ) { // move left as long as we see the ball
-			robot.turnLeft( MOVE_STEP_SIZE, MOVE_TIME );
-		} else if ( !movedLeft && !ballInView && !centered ) { // moved to far, so stop
-			movedLeft = true;
-		} else if ( !movedRight && ballInView && !centered ) { // move right as long as we see the ball
+		int tolerance = 50;
+		
+		float imgWidthMin = (imageHeight / 2) - tolerance;
+		float imgWidthMax = (imageHeight / 2) + tolerance;
+		
+		if(ball.getBallColor().getBottom().x < imgWidthMin ) {
 			robot.turnRight( MOVE_STEP_SIZE, MOVE_TIME );
-			right += MOVE_STEP_SIZE;
-		} else if ( !movedRight && !ballInView && !centered ) { // moved to far, so stop
-			movedRight = true;
-		} else if ( movedRight && movedLeft && !centered ) { // moveleft again, bu only half way
-			if ( left < right / 2 ) {
-				robot.turnLeft( MOVE_STEP_SIZE, MOVE_TIME );
-				left += MOVE_STEP_SIZE;
-			} else {
-				centered = true;
-				ScreenInfo.getInstance().add( "CENTERED", ScreenInfo.POS_BOTTOM_RIGHT, 4, ScreenInfo.COLOR_BLUE );
-			}
+		} else if (ball.getBallColor().getBottom().x > imgWidthMax ) {
+			robot.turnLeft( MOVE_STEP_SIZE, MOVE_TIME );
+		} else {
+			centered = true;
+			ScreenInfo.getInstance().add( "CENTERED!", ScreenInfo.POS_BOTTOM_RIGHT, 4, ScreenInfo.COLOR_BLUE );
 		}
+		
 	}
 
 	private void moveToBall() {
