@@ -40,7 +40,6 @@ import at.uni.as.colortracking.robot.Robot;
 import at.uni.as.colortracking.robot.RobotEnviroment;
 import at.uni.as.colortracking.tracking.Color;
 import at.uni.as.colortracking.tracking.ColorTrackingUtil;
-import at.uni.as.colortracking.tracking.TrackedBall;
 import at.uni.as.colortracking.tracking.TrackedBeacon;
 import at.uni.as.colortracking.tracking.TrackedColor;
 
@@ -53,7 +52,7 @@ public class MainActivity extends Activity implements CvCameraViewListener2,
 
 	private CameraBridgeViewBase mOpenCvCameraView;
 	private Robot robot;
-	private RobotEnviroment enviroment;
+	private RobotEnviroment environment;
 
 	// Menu Items
 	private MenuItem menuHomography = null;
@@ -71,6 +70,7 @@ public class MainActivity extends Activity implements CvCameraViewListener2,
 	private boolean calibration = false;
 	private boolean submitTouchedColor = false;
 	private Stack<Color> calibrationStack = new Stack<Color>();
+	private BallCatcher ballCatcher;
 	
 
 	private BaseLoaderCallback mLoaderCallback = new BaseLoaderCallback(this) {
@@ -159,6 +159,7 @@ public class MainActivity extends Activity implements CvCameraViewListener2,
 					Toast.makeText(this, "catch object disabled",Toast.LENGTH_SHORT).show();
 				} else {
 					catchingEnabled = true;
+					ballCatcher = new BallCatcher(robot);
 					if(robot.isConnected())
 						robot.barUp();
 					
@@ -196,7 +197,7 @@ public class MainActivity extends Activity implements CvCameraViewListener2,
 		MainActivity.RES_DISP_H = width;
 		MainActivity.RES_DISP_W = height;
 		
-		enviroment = new RobotEnviroment();
+		environment = new RobotEnviroment();
 		robot = new Robot(new FTDriver((UsbManager) getSystemService(USB_SERVICE)));
 		if (!robot.isConnected())
 			Toast.makeText(getApplicationContext(),"unable to connect to robot!", Toast.LENGTH_SHORT).show();
@@ -216,7 +217,7 @@ public class MainActivity extends Activity implements CvCameraViewListener2,
 
 		//if(trackingEnabled && enviroment.getHomography() != null) {
 		if(calcHomography) {
-			enviroment.calcHomography(image);
+			environment.calcHomography(image);
 			calcHomography = false;
 		} else if(calibration) {
 			Scalar rgb = new Scalar(image.get((int) (RES_DISP_W / 2), (int) (RES_DISP_H / 2))[0], 
@@ -242,16 +243,16 @@ public class MainActivity extends Activity implements CvCameraViewListener2,
 				Core.line(image, new Point(0.0, RES_DISP_W / 2), new Point(RES_DISP_H, RES_DISP_W / 2) , new Scalar(255,255,255), 2);
 				Core.line(image, new Point(RES_DISP_H / 2, 0.0), new Point(RES_DISP_H / 2, RES_DISP_W) , new Scalar(255,255,255), 2);
 			}
-		} else if(trackingEnabled) {	
+		} else if(trackingEnabled || catchingEnabled) {	
 			Map<Color, List<TrackedColor>> trackedColors = ColorTrackingUtil.detectColors(image);
-			image = ColorTrackingUtil.drawTrackedColors(image, trackedColors, enviroment.getHomography());
+			image = ColorTrackingUtil.drawTrackedColors(image, trackedColors, environment.getHomography());
 			if(image == null)
 				return inputFrame.rgba();
 			
 			List<TrackedBeacon> beacons = RobotEnviroment.extractBeacons(trackedColors);
 			
-			if(enviroment.getHomography() != null) {
-				Point position = RobotEnviroment.calcPosition(beacons, enviroment.getHomography());
+			if(environment.getHomography() != null) {
+				Point position = RobotEnviroment.calcPosition(beacons, environment.getHomography());
 				robot.setPosition(position);
 			}
 			
@@ -274,17 +275,12 @@ public class MainActivity extends Activity implements CvCameraViewListener2,
 			}
 			
 			if (catchingEnabled) {
-				TrackedBall ball = RobotEnviroment.findBall( trackedColors );
-				
-				if(ball != null) {
-					ball.calcDistance( enviroment.getHomography() );
-					robot.setBall( ball );
-					screenInfo.append("\nBALL FOUND, distance: " + ball.getDistance() + "\n");
+				if(!ballCatcher.isDone()) {
+					ballCatcher.catchBall(environment, trackedColors);
+					ballCatcher.printStatus( image );
 				} else {
-					robot.setBall( ball );
-					screenInfo.append("\nNO BALL FOUND\n");
+					// MAYBE RESTART?
 				}
-					
 			}
 			
 			printInfo(image, screenInfo.toString(), 0, 20);

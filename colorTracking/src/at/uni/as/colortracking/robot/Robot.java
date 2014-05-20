@@ -13,7 +13,6 @@ import org.opencv.core.Point;
 import android.annotation.SuppressLint;
 import android.util.Log;
 import android.view.View;
-import at.uni.as.colortracking.tracking.TrackedBall;
 
 @SuppressLint("UseValueOf")
 public class Robot {
@@ -32,7 +31,6 @@ public class Robot {
 	private Point position = null;
 	private Point positionOld = null;
 	private Queue<Point> targetCoords = new LinkedList<Point>();
-	private TrackedBall ball = null;
 
 	private boolean catchObjectFlag = false;
 	private boolean moveToCoordFlag = false;
@@ -249,31 +247,10 @@ public class Robot {
 		this.position = position;
 	}
 
-	public void setBall( TrackedBall ball ) {
-		this.ball = ball;
-	}
-
 	public void move() {
 		if ( moveToCoordFlag )
 			moveToCoords();
-		else if ( catchObjectFlag ) catchObject();
 	}
-
-	private void catchObject() {
-		if ( ball == null ) {
-			double currentDistance = ball.getDistance() / 10; // convert to cm
-			if ( currentDistance > 0 ) {
-				if ( currentDistance < 20 ) {
-					success();
-				} else {
-					moveForward( (int) currentDistance, 1 );
-				}
-			}
-		} else {
-			turnLeft( Robot.DEFAULT_VELOCITY, Robot.DEFAULT_MOVE_TIME );
-		}
-	}
-
 	private void moveToCoords() {
 		if ( targetCoords == null || targetCoords.isEmpty() ) {
 			moveToCoordFlag = false;
