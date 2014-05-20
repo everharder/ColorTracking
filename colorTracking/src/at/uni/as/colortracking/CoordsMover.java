@@ -14,6 +14,8 @@ public class CoordsMover {
 	private Point positionOld = null;
 	private Queue<Point> targetCoords = new LinkedList<Point>();
 	
+	private boolean moveToCoordsEnabled = false;
+	
 	public CoordsMover(Robot robot) {
 		this.robot = robot;
 	}
@@ -67,6 +69,13 @@ public class CoordsMover {
 
 		targetCoords.clear();
 		targetCoords.addAll(coords);
-		robot.setMoveToCoordsEnabled(true);
+	}
+	
+	public void setMoveToCoordsEnabled(boolean enabled) {
+		this.moveToCoordsEnabled = enabled;
+	}
+	
+	public boolean isMoveToCoordsEnabled() {
+		return moveToCoordsEnabled && !targetCoords.isEmpty();
 	}
 }

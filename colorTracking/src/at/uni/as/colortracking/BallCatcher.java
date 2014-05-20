@@ -33,6 +33,8 @@ public class BallCatcher {
 	private static final int MOVE_TIME = 1;
 	private static final int MOVE_STEP_SIZE = 1;
 	private static final double MIN_DISTANCE = 200; // mm
+	
+	private boolean ballCatchingEnabled = false;
 
 	public BallCatcher(Robot robot) {
 		this.robot = robot;
@@ -131,5 +133,13 @@ public class BallCatcher {
 	
 	public boolean isDone() {
 		return done;
+	}
+	
+	public boolean isBallCatchingEnabled() {
+		return !done && ballCatchingEnabled;
+	}
+	
+	public void setBallCatchingEnabled(boolean enabled) {
+		ballCatchingEnabled = enabled;
 	}
 }

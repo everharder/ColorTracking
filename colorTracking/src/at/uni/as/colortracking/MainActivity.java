@@ -169,12 +169,12 @@ public class MainActivity extends Activity implements CvCameraViewListener2,
 				ballCatcher = new BallCatcher(robot);
 				robot.barUp();
 						
-				if (robot.isMoveToCoordsEnabled()) {
-					robot.setMoveToCoordsEnabled(false);
+				if (coordsMover != null && coordsMover.isMoveToCoordsEnabled()) {
+					coordsMover.setMoveToCoordsEnabled(false);
 					Toast.makeText(getApplicationContext(),"MoveTo mode disabled!", Toast.LENGTH_SHORT).show();
 				}
 				catchingEnabled = true;
-				robot.setCatchObjectEnabled(catchingEnabled);
+				ballCatcher.setBallCatchingEnabled(catchingEnabled);
 				Toast.makeText(this, "catch object enabled",Toast.LENGTH_SHORT).show();
 			}
 		} else if (item == this.menuMoveTo) {	

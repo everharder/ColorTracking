@@ -19,16 +19,12 @@ public class Robot {
 
 	public static final double CATCH_DIST = 25.0;
 	public static final double COORDS_TOLERANCE = 10.0;
-	
 	public static final int DEFAULT_VELOCITY = 5;
 	public static final int DEFAULT_MOVE_TIME = 500; //ms
 	public static final int BEACONNOTFOUND_DELAY = 500; //ms
-	private FTDriver com;
 	
+	private FTDriver com;
 	private Point position = null;
-
-	private boolean catchObjectFlag = false;
-	private boolean moveToCoordFlag = false;
 
 	public Robot() {
 	}
@@ -319,22 +315,6 @@ public class Robot {
 				turnLeft( v, t );
 				break;
 		}
-	}
-
-	public boolean isCatchObjectEnabled() {
-		return catchObjectFlag;
-	}
-
-	public void setCatchObjectEnabled( boolean enabled ) {
-		this.catchObjectFlag = enabled;
-	}
-
-	public boolean isMoveToCoordsEnabled() {
-		return moveToCoordFlag;
-	}
-
-	public void setMoveToCoordsEnabled( boolean enabled ) {
-		this.moveToCoordFlag = enabled;
 	}
 
 	public void success() {
