@@ -66,7 +66,7 @@ public class BallCatcher {
 				grabBall();
 			}
 		} else {
-			robot.turnLeft( MOVE_STEP_SIZE, MOVE_TIME ); // turn left until we see a ball
+			robot.turnLeft( MOVE_STEP_SIZE ); // turn left until we see a ball
 		}
 	}
 
@@ -82,17 +82,17 @@ public class BallCatcher {
 		statusMessage.add( "CENTERING..." );
 
 		if ( !movedLeft && ballInView && !centered ) { // move left as long as we see the ball
-			robot.turnLeft( MOVE_STEP_SIZE, MOVE_TIME );
+			robot.turnLeft( MOVE_STEP_SIZE );
 		} else if ( !movedLeft && !ballInView && !centered ) { // moved to far, so stop
 			movedLeft = true;
 		} else if ( !movedRight && ballInView && !centered ) { // move right as long as we see the ball
-			robot.turnRight( MOVE_STEP_SIZE, MOVE_TIME );
+			robot.turnRight( MOVE_STEP_SIZE );
 			right += MOVE_STEP_SIZE;
 		} else if ( !movedRight && !ballInView && !centered ) { // moved to far, so stop
 			movedRight = true;
 		} else if ( movedRight && movedLeft && !centered ) { // moveleft again, bu only half way
 			if ( left < right / 2 ) {
-				robot.turnLeft( MOVE_STEP_SIZE, MOVE_TIME );
+				robot.turnLeft( MOVE_STEP_SIZE );
 				left += MOVE_STEP_SIZE;
 			} else {
 				centered = true;

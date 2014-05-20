@@ -1,5 +1,7 @@
 package at.uni.as.colortracking.tracking;
 
+import java.util.List;
+
 import org.opencv.core.Core;
 import org.opencv.core.CvType;
 import org.opencv.core.Mat;
@@ -32,6 +34,10 @@ public class TrackedColor {
 		return bottom;
 	}
 	
+	public double getAngle(Point ref) {
+		return Math.atan((getBottom().x - ref.x) / (ref.y - getBottom().y));
+	}
+	
 	public void setDistance(double distance) {
 		this.distance = distance;
 	}
@@ -55,5 +61,19 @@ public class TrackedColor {
 
 		src.release();
 		dst.release();
+	}
+	
+	public static TrackedColor getBiggest(List<TrackedColor> colors) {
+		TrackedColor max_c = null;
+		double max_s = -1;
+		
+		for(TrackedColor c : colors) {
+			if(c.getBorders().area() > max_s) {
+				max_c = c;
+				max_s = c.getBorders().area();
+			}
+		}
+		
+		return max_c;
 	}
 }

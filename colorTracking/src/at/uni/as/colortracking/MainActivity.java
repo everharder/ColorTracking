@@ -47,8 +47,8 @@ public class MainActivity extends Activity implements CvCameraViewListener2,
 		OnTouchListener {
 	private static final String TAG = "ColorTracking::MainActivity";
 
-	private static float RES_DISP_H;
-	private static float RES_DISP_W;
+	public static float CAMERA_H;
+	public static float CAMERA_W;
 
 	private CameraBridgeViewBase mOpenCvCameraView;
 	private Robot robot;
@@ -205,8 +205,8 @@ public class MainActivity extends Activity implements CvCameraViewListener2,
 
 	public void onCameraViewStarted(int width, int height) {
 		//get screen resolution
-		MainActivity.RES_DISP_H = width;
-		MainActivity.RES_DISP_W = height;
+		MainActivity.CAMERA_H = width;
+		MainActivity.CAMERA_W = height;
 		
 		environment = new RobotEnviroment();
 		robot = new Robot(new FTDriver((UsbManager) getSystemService(USB_SERVICE)));
@@ -230,9 +230,9 @@ public class MainActivity extends Activity implements CvCameraViewListener2,
 			environment.calcHomography(image);
 			calcHomography = false;
 		} else if(calibration) {
-			Scalar rgb = new Scalar(image.get((int) (RES_DISP_W / 2), (int) (RES_DISP_H / 2))[0], 
-									image.get((int) (RES_DISP_W / 2), (int) (RES_DISP_H / 2))[1], 
-									image.get((int) (RES_DISP_W / 2), (int) (RES_DISP_H / 2))[2]);
+			Scalar rgb = new Scalar(image.get((int) (CAMERA_W / 2), (int) (CAMERA_H / 2))[0], 
+									image.get((int) (CAMERA_W / 2), (int) (CAMERA_H / 2))[1], 
+									image.get((int) (CAMERA_W / 2), (int) (CAMERA_H / 2))[2]);
 			
 			if(submitTouchedColor) {
 				calibrationStack.pop().setRGB(rgb);
@@ -246,12 +246,12 @@ public class MainActivity extends Activity implements CvCameraViewListener2,
 								+ String.valueOf(rgb.val[0]) + " | " 
 								+ String.valueOf(rgb.val[1]) + " | "
 								+ String.valueOf(rgb.val[2]),
-						new Point(RES_DISP_H / 2 + 10, RES_DISP_W / 2 - 10),
+						new Point(CAMERA_H / 2 + 10, CAMERA_W / 2 - 10),
 						Core.FONT_HERSHEY_SIMPLEX, 1, new Scalar(
 								255,255,255));
 				
-				Core.line(image, new Point(0.0, RES_DISP_W / 2), new Point(RES_DISP_H, RES_DISP_W / 2) , new Scalar(255,255,255), 2);
-				Core.line(image, new Point(RES_DISP_H / 2, 0.0), new Point(RES_DISP_H / 2, RES_DISP_W) , new Scalar(255,255,255), 2);
+				Core.line(image, new Point(0.0, CAMERA_W / 2), new Point(CAMERA_H, CAMERA_W / 2) , new Scalar(255,255,255), 2);
+				Core.line(image, new Point(CAMERA_H / 2, 0.0), new Point(CAMERA_H / 2, CAMERA_W) , new Scalar(255,255,255), 2);
 			}
 		} else if(trackingEnabled || catchingEnabled) {	
 			Map<Color, List<TrackedColor>> trackedColors = ColorTrackingUtil.detectColors(image);

@@ -29,7 +29,7 @@ public class CoordsMover {
 		Point target = targetCoords.peek();
 
 		if ( robot.getPosition() == null ) {
-			robot.turnLeft( Robot.DEFAULT_VELOCITY, Robot.DEFAULT_MOVE_TIME );
+			robot.turnLeft( Robot.MOVE_DIST );
 
 			try {
 				Thread.sleep( Robot.BEACONNOTFOUND_DELAY );
@@ -55,9 +55,9 @@ public class CoordsMover {
 			if ( deltaX < deltaXOld && deltaY < deltaYOld ) {
 				robot.moveForward( (int) (Math.sqrt(Math.pow(deltaX, 2) + Math.pow(deltaY, 2)) * 0.9), 1000 );
 			} else {
-				robot.moveBackward( Robot.DEFAULT_VELOCITY, Robot.DEFAULT_MOVE_TIME );
-				robot.turnLeft( Robot.DEFAULT_VELOCITY, Robot.DEFAULT_MOVE_TIME );
-				robot.moveForward( Robot.DEFAULT_VELOCITY, Robot.DEFAULT_MOVE_TIME );
+				robot.moveBackward( Robot.MOVE_DIST, Robot.MOVE_TIME );
+				robot.turnLeft( Robot.MOVE_ANGL );
+				robot.moveForward( Robot.MOVE_DIST, Robot.MOVE_TIME );
 			}
 
 			positionOld = robot.getPosition().clone();

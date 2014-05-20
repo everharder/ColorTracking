@@ -19,8 +19,11 @@ public class Robot {
 
 	public static final double CATCH_DIST = 25.0;
 	public static final double COORDS_TOLERANCE = 10.0;
-	public static final int DEFAULT_VELOCITY = 5;
-	public static final int DEFAULT_MOVE_TIME = 500; //ms
+	
+	
+	public static int MOVE_DIST =   20; //cm
+	public static int MOVE_TIME = 1000; //ms
+	public static int MOVE_ANGL =    5; //TODO: measure estimated val.
 	public static final int BEACONNOTFOUND_DELAY = 500; //ms
 	
 	private FTDriver com;
@@ -125,13 +128,9 @@ public class Robot {
 	}
 
 	// move forward
-	public void moveForward() {
-		comReadWrite( new byte[] { 'w', '\r', '\n' } );
-	}
-
-	// move forward
-	public void moveForward( int v, int t ) {
-		setVelocity( (byte) v, (byte) v );
+	public void moveForward( int s, int t ) {
+		s *= Command.FORWARD.cal();
+		setVelocity( (byte) s, (byte) s );
 
 		try {
 			Thread.sleep( t );
@@ -142,8 +141,9 @@ public class Robot {
 	}
 
 	// move backward
-	public void moveBackward( int v, int t ) {
-		setVelocity( (byte) -v, (byte) -v );
+	public void moveBackward( int s, int t ) {
+		s *= Command.BACKWARD.cal();
+		setVelocity( (byte) -s, (byte) -s );
 
 		try {
 			Thread.sleep( t );
@@ -154,56 +154,32 @@ public class Robot {
 	}
 
 	// turn left
-	public void turnLeft( int v, int t ) {
-		setVelocity( (byte) 0, (byte) v );
+	public void turnLeft( double angle ) {
+		angle *= Command.LEFT.cal();
+		setVelocity( (byte) 0, (byte) angle );
 
 		try {
-			Thread.sleep( t );
+			Thread.sleep( MOVE_TIME );
 		} catch ( InterruptedException e ) {
 		}
 		stop();
 	}
 
 	// turn right
-	public void turnRight( int v, int t ) {
-		setVelocity( (byte) v, (byte) 0 );
+	public void turnRight( double angle ) {
+		angle *= Command.RIGHT.cal();
+		setVelocity( (byte) angle, (byte) 0 );
 
 		try {
-			Thread.sleep( t );
+			Thread.sleep( MOVE_TIME );
 		} catch ( InterruptedException e ) {
 		}
 		stop();
-	}
-
-	// turn left
-	public void turnLeft() {
-		comReadWrite( new byte[] { 'a', '\r', '\n' } );
 	}
 
 	// stop
 	public void stop() {
 		comReadWrite( new byte[] { 's', '\r', '\n' } );
-	}
-
-	// turn right
-	public void turnRight() {
-		comReadWrite( new byte[] { 'd', '\r', '\n' } );
-	}
-
-	// move backward
-	public void moveBackward() {
-		// logText(comReadWrite(new byte[] { 'x', '\r', '\n' }));
-		setVelocity( (byte) -30, (byte) -30 );
-	}
-
-	// lower bar a few degrees
-	public void barLower() {
-		comReadWrite( new byte[] { '-', '\r', '\n' } );
-	}
-
-	// rise bar a few degrees
-	public void barRise() {
-		comReadWrite( new byte[] { '+', '\r', '\n' } );
 	}
 
 	// fixed position for bar (low)
@@ -250,69 +226,26 @@ public class Robot {
 	}
 
 	public void doCommand( Command c ) {
-		switch ( c ) {
-			case FORWARD:
-				moveForward();
-				break;
-			case BACKWARD:
-				moveBackward();
-				break;
-			case LEFT:
-				turnLeft();
-				break;
-			case RIGHT:
-				turnRight();
-				break;
-		}
+		doCommand(c, MOVE_DIST);
 	}
 
-	public void doCommand( Command c, int v, int t ) {
-		switch ( c ) {
-			case FORWARD:
-				moveForward( v, t );
-				break;
-			case BACKWARD:
-				moveBackward( v, t );
-				break;
-			case LEFT:
-				turnLeft( v, t );
-				break;
-			case RIGHT:
-				turnRight( v, t );
-				break;
-		}
+	public void doCommand( Command c, int s) {
+		doCommand(c, s, MOVE_TIME);
 	}
-
-	public void undoCommand( Command c ) {
+	
+	public void doCommand( Command c, int s, int t ) {
 		switch ( c ) {
 			case FORWARD:
-				moveBackward();
+				moveForward( s, t );
 				break;
 			case BACKWARD:
-				moveForward();
+				moveBackward( s, t );
 				break;
 			case LEFT:
-				turnRight();
+				turnLeft( s * (t / 1000));
 				break;
 			case RIGHT:
-				turnLeft();
-				break;
-		}
-	}
-
-	public void undoCommand( Command c, int v, int t ) {
-		switch ( c ) {
-			case FORWARD:
-				moveBackward( v, t );
-				break;
-			case BACKWARD:
-				moveForward( v, t );
-				break;
-			case LEFT:
-				turnRight( v, t );
-				break;
-			case RIGHT:
-				turnLeft( v, t );
+				turnRight( s * (t / 1000));
 				break;
 		}
 	}
@@ -330,6 +263,23 @@ public class Robot {
 	}
 
 	public enum Command {
-		FORWARD, BACKWARD, LEFT, RIGHT
+		FORWARD	(1.0), 
+		BACKWARD(1.0), 
+		LEFT	(1.0), 
+		RIGHT	(1.0);
+		
+		private double calibrationFactor;
+		
+		Command(double calibrationFactor) {
+			this.calibrationFactor = calibrationFactor;
+		}
+		
+		public double cal() {
+			return calibrationFactor;
+		}
+		
+		public void setCal(double calibrationFactor) {
+			this.calibrationFactor = calibrationFactor;
+		}
 	}
 }
