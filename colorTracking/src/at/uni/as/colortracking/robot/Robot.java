@@ -1,9 +1,7 @@
 package at.uni.as.colortracking.robot;
 
 import java.util.Arrays;
-import java.util.LinkedList;
 import java.util.List;
-import java.util.Queue;
 import java.util.Random;
 
 import jp.ksksue.driver.serial.FTDriver;
@@ -19,18 +17,15 @@ public class Robot {
 	@SuppressWarnings("unused")
 	private String TAG = "iRobot";
 
-	@SuppressWarnings("unused")
-	private static final double CATCH_DIST = 25.0;
-	private static final double COORDS_TOLERANCE = 10.0;
+	public static final double CATCH_DIST = 25.0;
+	public static final double COORDS_TOLERANCE = 10.0;
 	
 	public static final int DEFAULT_VELOCITY = 5;
 	public static final int DEFAULT_MOVE_TIME = 500; //ms
 	public static final int BEACONNOTFOUND_DELAY = 500; //ms
 	private FTDriver com;
-
+	
 	private Point position = null;
-	private Point positionOld = null;
-	private Queue<Point> targetCoords = new LinkedList<Point>();
 
 	private boolean catchObjectFlag = false;
 	private boolean moveToCoordFlag = false;
@@ -247,54 +242,6 @@ public class Robot {
 		this.position = position;
 	}
 
-	public void move() {
-		if ( moveToCoordFlag )
-			moveToCoords();
-	}
-	private void moveToCoords() {
-		if ( targetCoords == null || targetCoords.isEmpty() ) {
-			moveToCoordFlag = false;
-			return;
-		}
-
-		Point target = targetCoords.peek();
-
-		if ( position == null ) {
-			turnLeft( Robot.DEFAULT_VELOCITY, Robot.DEFAULT_MOVE_TIME );
-
-			try {
-				Thread.sleep( BEACONNOTFOUND_DELAY );
-			} catch ( InterruptedException e ) {
-			}
-
-		} else if ( Math.abs( position.x - target.x ) < COORDS_TOLERANCE && Math.abs( position.y - target.y ) < COORDS_TOLERANCE ) {
-			// robot is at target coords
-
-			// remove target coords from queue
-			targetCoords.poll();
-			success();
-		} else {
-			if ( positionOld == null ) {
-				positionOld = position.clone();
-			}
-
-			double deltaX = Math.abs( position.x - target.x );
-			double deltaY = Math.abs( position.y - target.y );
-			double deltaXOld = Math.abs( positionOld.x - target.x );
-			double deltaYOld = Math.abs( positionOld.y - target.y );
-
-			if ( deltaX < deltaXOld && deltaY < deltaYOld ) {
-				moveForward( (int) (Math.sqrt(Math.pow(deltaX, 2) + Math.pow(deltaY, 2)) * 0.9), 1000 );
-			} else {
-				moveBackward( DEFAULT_VELOCITY, DEFAULT_MOVE_TIME );
-				turnLeft( DEFAULT_VELOCITY, DEFAULT_MOVE_TIME );
-				moveForward( DEFAULT_VELOCITY, DEFAULT_MOVE_TIME );
-			}
-
-			positionOld = position.clone();
-		}
-	}
-
 	public static Command getRandomCommand() {
 		return getRandomCommand( Arrays.asList( Command.values() ) );
 	}
@@ -390,16 +337,7 @@ public class Robot {
 		this.moveToCoordFlag = enabled;
 	}
 
-	public void setTargetCoords( List<Point> coords ) {
-		if ( coords == null || coords.size() == 0 ) return;
-
-		targetCoords.clear();
-		targetCoords.addAll( coords );
-		moveToCoordFlag = true;
-		catchObjectFlag = false;
-	}
-
-	private void success() {
+	public void success() {
 		barDown();
 		ledOn();
 		try {

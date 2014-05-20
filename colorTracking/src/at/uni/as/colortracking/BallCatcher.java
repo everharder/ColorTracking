@@ -42,7 +42,8 @@ public class BallCatcher {
 		ball = RobotEnviroment.findBall( trackedColors );
 
 		if ( ball != null ) {
-			if ( environment.getHomography() != null ) ball.calcDistance( environment.getHomography() );
+			if ( environment.getHomography() != null ) 
+				ball.calcDistance( environment.getHomography() );
 			statusColor.add( new Scalar( 0.0, 255.0, 0.0 ) );
 			statusMessage.add( "BALL FOUND" );
 			initalBallFound = true;

@@ -71,6 +71,7 @@ public class MainActivity extends Activity implements CvCameraViewListener2,
 	private boolean submitTouchedColor = false;
 	private Stack<Color> calibrationStack = new Stack<Color>();
 	private BallCatcher ballCatcher;
+	private CoordsMover coordsMover;
 	
 
 	private BaseLoaderCallback mLoaderCallback = new BaseLoaderCallback(this) {
@@ -146,33 +147,43 @@ public class MainActivity extends Activity implements CvCameraViewListener2,
 				Toast.makeText(this, "stopped tracking", Toast.LENGTH_SHORT).show();
 			} else {
 				trackingEnabled = true;
-				Toast.makeText(this, "started tracking", Toast.LENGTH_SHORT).show();
+				if(environment.getHomography() == null)
+					Toast.makeText(this, "started tracking without homography", Toast.LENGTH_SHORT).show();
+				else
+					Toast.makeText(this, "started tracking", Toast.LENGTH_SHORT).show();
 			}
 
 		} else if (item == this.menuHomography) {
 			calcHomography = true;
 		} else if (item == this.menuCatchObject) {
-			if (robot != null) {
-				if (catchingEnabled) {
-					catchingEnabled = false;
-
-					Toast.makeText(this, "catch object disabled",Toast.LENGTH_SHORT).show();
-				} else {
-					catchingEnabled = true;
-					ballCatcher = new BallCatcher(robot);
-					if(robot.isConnected())
-						robot.barUp();
-					
-					Toast.makeText(this, "catch object enabled",Toast.LENGTH_SHORT).show();
-
-					if (robot.isMoveToCoordsEnabled()) {
-						robot.setMoveToCoordsEnabled(false);
-						Toast.makeText(getApplicationContext(),"MoveTo mode disabled!", Toast.LENGTH_SHORT).show();
-					}
-				}
-				robot.setCatchObjectEnabled(catchingEnabled);
+			if(robot == null || !robot.isConnected()) {
+				catchingEnabled = false;
+				Toast.makeText(getApplicationContext(), "no robot connection", Toast.LENGTH_SHORT);
+				return true;
 			}
-		} else if (item == this.menuMoveTo) {
+			
+			if (catchingEnabled) {
+				catchingEnabled = false;
+				Toast.makeText(this, "catch object disabled",Toast.LENGTH_SHORT).show();
+			} else {
+				ballCatcher = new BallCatcher(robot);
+				robot.barUp();
+						
+				if (robot.isMoveToCoordsEnabled()) {
+					robot.setMoveToCoordsEnabled(false);
+					Toast.makeText(getApplicationContext(),"MoveTo mode disabled!", Toast.LENGTH_SHORT).show();
+				}
+				catchingEnabled = true;
+				robot.setCatchObjectEnabled(catchingEnabled);
+				Toast.makeText(this, "catch object enabled",Toast.LENGTH_SHORT).show();
+			}
+		} else if (item == this.menuMoveTo) {	
+			if(robot == null || robot.isConnected()) {
+				Toast.makeText(this, "robot not connected",Toast.LENGTH_SHORT).show();
+				return true;
+			}
+			
+			coordsMover = new CoordsMover(robot);
 			final EditText input = new EditText(this);
 
 			input.setImeOptions(EditorInfo.IME_FLAG_NO_EXTRACT_UI);
@@ -214,8 +225,7 @@ public class MainActivity extends Activity implements CvCameraViewListener2,
 	public Mat onCameraFrame(CvCameraViewFrame inputFrame) {
 		Mat image = inputFrame.rgba();
 		StringBuilder screenInfo = new StringBuilder();
-
-		//if(trackingEnabled && enviroment.getHomography() != null) {
+		
 		if(calcHomography) {
 			environment.calcHomography(image);
 			calcHomography = false;
@@ -284,10 +294,6 @@ public class MainActivity extends Activity implements CvCameraViewListener2,
 			}
 			
 			printInfo(image, screenInfo.toString(), 0, 20);
-			
-			if (robot != null && robot.isConnected()) {				
-				robot.move();
-			}
 		} 
 
 		return image;
@@ -321,7 +327,8 @@ public class MainActivity extends Activity implements CvCameraViewListener2,
 		public void onClick(DialogInterface dialog, int whichButton) {
 			String value = input.getText().toString();
 			if (value != null && value.length() > 0 && robot != null) {
-				robot.setTargetCoords(RobotEnviroment.parseCoordsList(value)); 
+				
+				coordsMover.setTargetCoords(RobotEnviroment.parseCoordsList(value)); 
 			}
 		}
 	}
