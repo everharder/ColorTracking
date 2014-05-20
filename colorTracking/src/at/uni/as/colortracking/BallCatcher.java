@@ -17,8 +17,6 @@ public class BallCatcher {
 	Robot robot;
 	ArrayList<String> statusMessage = new ArrayList<String>();
 	ArrayList<Scalar> statusColor = new ArrayList<Scalar>();
-	boolean movedLeft = false;
-	boolean movedRight = false;
 	boolean centered = false;
 	boolean initalBallFound = false;
 	boolean ballInView = false;
@@ -29,9 +27,12 @@ public class BallCatcher {
 	float imageWidth;
 	float imageHeight;
 	
-	private static final int MOVE_TIME = 1;
-	private static final int MOVE_STEP_SIZE = 1;
-	private static final double MIN_DISTANCE = 200; // mm
+	private static final int MOVE_TIME = 400;
+	private static final int MOVE_STEP_SIZE = 15;
+	private static final int MOVE_TIME_CENTERING = 100;
+	private static final int CAMERA_X_OFFSET = -5; // cam is on the left side
+	private static final double MIN_DISTANCE = 15; // cm
+	private static final int MIDDLE_TOLERANCE = 50;
 
 	public BallCatcher(Robot robot, float cAMERA_W, float cAMERA_H) {
 		this.robot = robot;
@@ -69,27 +70,39 @@ public class BallCatcher {
 
 	private void alignToBall() {
 		ScreenInfo.getInstance().add( "CENTERING...", ScreenInfo.POS_BOTTOM_RIGHT, 4, ScreenInfo.COLOR_BLUE );
-		int tolerance = 50;
 		
-		float imgWidthMin = (imageHeight / 2) - tolerance;
-		float imgWidthMax = (imageHeight / 2) + tolerance;
 		
-		if(ball.getBallColor().getBottom().x < imgWidthMin ) {
-			robot.turnRight( MOVE_STEP_SIZE, MOVE_TIME );
-		} else if (ball.getBallColor().getBottom().x > imgWidthMax ) {
-			robot.turnLeft( MOVE_STEP_SIZE, MOVE_TIME );
+		float imgWidthMin = (imageHeight / 2) - MIDDLE_TOLERANCE + CAMERA_X_OFFSET;
+		float imgWidthMax = (imageHeight / 2) + MIDDLE_TOLERANCE + CAMERA_X_OFFSET;
+		
+		if( ballInView) {
+			if(ball.getBallColor().getBottom().x < imgWidthMin ) {
+				robot.turnLeft( MOVE_STEP_SIZE, MOVE_TIME_CENTERING );
+			} else if (ball.getBallColor().getBottom().x > imgWidthMax ) {
+				robot.turnRight( MOVE_STEP_SIZE, MOVE_TIME_CENTERING );
+			} else {
+				centered = true;
+				ScreenInfo.getInstance().add( "CENTERED!", ScreenInfo.POS_BOTTOM_RIGHT, 4, ScreenInfo.COLOR_BLUE );
+			}
 		} else {
-			centered = true;
-			ScreenInfo.getInstance().add( "CENTERED!", ScreenInfo.POS_BOTTOM_RIGHT, 4, ScreenInfo.COLOR_BLUE );
+			robot.turnLeft( MOVE_STEP_SIZE, MOVE_TIME ); // turn left until we see a ball again
 		}
 		
 	}
 
 	private void moveToBall() {
 		if ( ballInView ) {
+			double centerOffset = ((imageHeight / 2) + CAMERA_X_OFFSET) - ball.getBallColor().getBottom().x;
+			if(Math.abs(centerOffset) > MIDDLE_TOLERANCE) {
+				centered = false;
+				readyToCatch = false;
+				return;
+			}
+			
 			ScreenInfo.getInstance().add( "MOVING...", ScreenInfo.POS_BOTTOM_RIGHT, 4, ScreenInfo.COLOR_BLUE );
 
 			if ( ball.getDistance() < MIN_DISTANCE ) {
+				// TODO: check sensors
 				ScreenInfo.getInstance().add( "READY TO CATCH...", ScreenInfo.POS_BOTTOM_RIGHT, 4, ScreenInfo.COLOR_BLUE );
 				readyToCatch = true;
 			} else {
@@ -97,6 +110,8 @@ public class BallCatcher {
 			}
 		} else {
 			ScreenInfo.getInstance().add( "BALL LOST...", ScreenInfo.POS_BOTTOM_RIGHT, 4, ScreenInfo.COLOR_RED );
+			centered = false;
+			readyToCatch = false;
 		}
 	}
 

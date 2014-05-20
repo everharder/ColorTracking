@@ -204,6 +204,7 @@ public class MainActivity extends Activity implements CvCameraViewListener2,
 		else {
 			robot.moveForward(15, 250);
 			robot.moveBackward(15, 250);
+			robot.barUp();
 		}
 	}
 

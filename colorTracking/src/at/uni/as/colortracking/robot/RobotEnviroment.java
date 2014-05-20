@@ -23,7 +23,7 @@ public class RobotEnviroment {
 	public static final double HALFWAY_X = 60;
 	private static final double MAX_BEACON_STRIP_DIST_PXL_Y = 100;
 	private static final double MAX_BEACON_STRIP_DIST_PXL_X = 100;
-	private static final double MIN_BALL_DIAMETER = 70; // min size...
+	private static final double MIN_BALL_DIAMETER = 10; // min size...
 
 	private Mat homography = null;
 
