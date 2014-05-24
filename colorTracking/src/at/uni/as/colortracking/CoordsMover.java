@@ -10,16 +10,12 @@ import at.uni.as.colortracking.robot.Robot;
 
 public class CoordsMover {
 	private Robot robot = null;
-	
-	private Point positionOld = null;
 	private Queue<Point> targetCoords = new LinkedList<Point>();
-	
 	private boolean moveToCoordsEnabled = false;
 	
 	public CoordsMover(Robot robot) {
 		this.robot = robot;
 	}
-	
 
 	public void moveToCoords() {
 		if ( targetCoords == null || targetCoords.isEmpty() ) {
@@ -28,39 +24,26 @@ public class CoordsMover {
 
 		Point target = targetCoords.peek();
 
-		if ( robot.getPosition() == null ) {
-			robot.turnLeft( Robot.MOVE_DIST );
-
-			try {
-				Thread.sleep( Robot.BEACONNOTFOUND_DELAY );
-			} catch ( InterruptedException e ) {
-			}
+		if ( robot.getPosition() == null || robot.getAngle() == null) {
+			robot.turnLeft( Robot.MOVE_ANGL );
 
 		} else if ( Math.abs( robot.getPosition().x - target.x ) < Robot.COORDS_TOLERANCE && Math.abs( robot.getPosition().y - target.y ) < Robot.COORDS_TOLERANCE ) {
 			// robot is at target coords
-
-			// remove target coords from queue
 			targetCoords.poll();
 			robot.success();
 		} else {
-			if ( positionOld == null ) {
-				positionOld = robot.getPosition().clone();
-			}
+			//calulate angle and dist to target
+			double deltaX = target.x - robot.getPosition().x;
+			double deltaY = target.y - robot.getPosition().y;
+			double angle = (Math.atan2(deltaY, deltaX) + Math.PI) / (2 * Math.PI) * 360.0;
+			double disto = Math.sqrt(Math.pow(deltaX, 2) + Math.pow(deltaY, 2));
 
-			double deltaX = Math.abs( robot.getPosition().x - target.x );
-			double deltaY = Math.abs( robot.getPosition().y - target.y );
-			double deltaXOld = Math.abs( positionOld.x - target.x );
-			double deltaYOld = Math.abs( positionOld.y - target.y );
-
-			if ( deltaX < deltaXOld && deltaY < deltaYOld ) {
-				robot.moveForward( (int) (Math.sqrt(Math.pow(deltaX, 2) + Math.pow(deltaY, 2)) * 0.9), 1000 );
-			} else {
-				robot.moveBackward( Robot.MOVE_DIST, Robot.MOVE_TIME );
-				robot.turnLeft( Robot.MOVE_ANGL );
-				robot.moveForward( Robot.MOVE_DIST, Robot.MOVE_TIME );
-			}
-
-			positionOld = robot.getPosition().clone();
+			if(robot.getAngle() - Robot.ANGLE_TOLERANCE > angle)
+				robot.turnRight(angle);
+			else if(robot.getAngle() + Robot.ANGLE_TOLERANCE < angle)
+				robot.turnLeft(angle);
+			else
+				robot.moveForward((int) disto);
 		}
 	}
 	

@@ -218,8 +218,8 @@ public class MainActivity extends Activity implements CvCameraViewListener2,
 		if (!robot.isConnected())
 			Toast.makeText(getApplicationContext(),"unable to connect to robot!", Toast.LENGTH_SHORT).show();
 		else {
-			robot.moveForward(15, 250);
-			robot.moveBackward(15, 250);
+			robot.moveForward(10);
+			robot.moveBackward(10);
 			robot.barUp();
 		}
 	}
@@ -276,7 +276,7 @@ public class MainActivity extends Activity implements CvCameraViewListener2,
 			//===============================================================================
 			Map<Color, List<TrackedColor>> trackedColors = ColorTrackingUtil.detectColors(image); 
 			
-			image = ColorTrackingUtil.drawTrackedColors(image, trackedColors, environment.getHomography(), new Point(CAMERA_W / 2, CAMERA_H));
+			image = ColorTrackingUtil.drawTrackedColors(image, trackedColors, environment.getHomography(), new Point(CAMERA_W / 2, CAMERA_H / 2));
 			if(image == null)
 				return inputFrame.rgba();
 			
@@ -286,7 +286,12 @@ public class MainActivity extends Activity implements CvCameraViewListener2,
 			//===============================================================================
 			if(environment.getHomography() != null) {
 				Point position = RobotEnviroment.calcPosition(beacons, environment.getHomography());
-				robot.setPosition(position);
+				if(position != null)
+					robot.setPosition(position);
+				
+				Double angle = RobotEnviroment.calcAngle(beacons, new Point(CAMERA_W / 2, CAMERA_H / 2));
+				if(angle != null)
+					robot.setAngle(angle);
 			}
 			
 			//BALL CATCHING
@@ -311,6 +316,12 @@ public class MainActivity extends Activity implements CvCameraViewListener2,
 				screenInfo.append(new DecimalFormat("#0.00").format(robot.getPosition().x));
 				screenInfo.append("|");
 				screenInfo.append(new DecimalFormat("#0.00").format(robot.getPosition().y));
+				ScreenInfo.getInstance().add( screenInfo.toString(), ScreenInfo.POS_TOP_LEFT, ScreenInfo.COLOR_WHITE );
+			}
+			if (robot.getAngle() != null) {
+				StringBuilder screenInfo = new StringBuilder();
+				screenInfo.append("Robot-Angle: ");
+				screenInfo.append(new DecimalFormat("#0.00").format(robot.getAngle()));
 				ScreenInfo.getInstance().add( screenInfo.toString(), ScreenInfo.POS_TOP_LEFT, ScreenInfo.COLOR_WHITE );
 			}
 			

@@ -37,7 +37,7 @@ public class TrackedColor {
 	}
 	
 	public double getAngle(Point ref) {
-		return (bottom.x - ref.x) * Robot.FIELD_OF_VIEW / (ref.x * 2.0); 
+		return (ref.x - bottom.x) * Robot.FIELD_OF_VIEW / (ref.x * 2.0); 
 	}
 	
 	public void setDistance(double distance) {

@@ -10,7 +10,7 @@ import org.opencv.core.Point;
 
 import android.annotation.SuppressLint;
 import android.util.Log;
-import android.view.View;
+import android.util.Pair;
 
 @SuppressLint("UseValueOf")
 public class Robot {
@@ -19,29 +19,22 @@ public class Robot {
 
 	public static final double CATCH_DIST = 25.0;
 	public static final double COORDS_TOLERANCE = 10.0;
+	public static final double ANGLE_TOLERANCE = 5.0;
 	public static final double FIELD_OF_VIEW = 110.0;
 	
-	
-	public static int MOVE_DIST =   20; //cm
-	public static int MOVE_TIME = 1000; //ms
-	public static int MOVE_ANGL =    5; //TODO: measure estimated val.
+	public static int MOVE_DIST =   	20; //cm
+	public static long MOVE_TIME =  	  1000; //ms
+	public static int MOVE_ANGL =   	 5; //TODO: measure estimated val.
+	public static int VELOCITY_MIN =	20; //cm per second
 	public static final int BEACONNOTFOUND_DELAY = 500; //ms
 	
 	private FTDriver com;
 	private Point position = null;
-
-	public Robot() {
-	}
+	private Double angle = null; 
 
 	public Robot(FTDriver com) {
-		this();
 		this.com = com;
 		connect();
-	}
-
-	public Robot(FTDriver com, Point position) {
-		this( com );
-		this.position = position;
 	}
 
 	public void connect() {
@@ -62,26 +55,7 @@ public class Robot {
 		return com != null && com.isConnected();
 	}
 
-	/**
-	 * transfers given bytes via the serial connection.
-	 * 
-	 * @param data
-	 */
-	public void comWrite( byte[] data ) {
-		if ( isConnected() ) {
-			com.write( data );
-		}
-	}
-
-	/**
-	 * reads from the serial buffer. due to buffering, the read command is
-	 * issued 3 times at minimum and continuously as long as there are bytes to
-	 * read from the buffer. Note that this function does not block, it might
-	 * return an empty string if no bytes have been read at all.
-	 * 
-	 * @return buffer content as string
-	 */
-	public String comRead() {
+	private String comRead() {
 		if ( !isConnected() ) return "NOTCONNECTED";
 
 		String s = "";
@@ -96,14 +70,7 @@ public class Robot {
 		return s;
 	}
 
-	/**
-	 * write data to serial interface, wait 100 ms and read answer.
-	 * 
-	 * @param data
-	 *            to write
-	 * @return answer from serial interface
-	 */
-	public String comReadWrite( byte[] data ) {
+	private String comReadWrite( byte[] data ) {
 		if ( !isConnected() ) return "NOTCONNECTED";
 
 		if ( com != null ) Log.d( "comNull", "com is not null" );
@@ -128,30 +95,36 @@ public class Robot {
 		comReadWrite( new byte[] { 'o', value, '\r', '\n' } );
 	}
 
-	// move forward
-	public void moveForward( int s, int t ) {
+	public void moveForward( int s ) {
 		s *= Command.FORWARD.cal();
-		setVelocity( (byte) s, (byte) s );
+		
+		Pair<Integer, Long> moveParams = calcVelocityMoveTime(s);
+		setVelocity( (byte) ((int)moveParams.first), (byte) ((int)moveParams.first));
 
 		try {
-			Thread.sleep( t );
+			Thread.sleep(moveParams.second);
 		} catch ( InterruptedException e ) {
 		}
-
 		stop();
+		
+		if(position != null && angle != null)
+			updatePosition(s, angle);
 	}
-
+	
 	// move backward
-	public void moveBackward( int s, int t ) {
+	public void moveBackward( int s ) {
 		s *= Command.BACKWARD.cal();
-		setVelocity( (byte) -s, (byte) -s );
+		Pair<Integer, Long> moveParams = calcVelocityMoveTime(s);
+		setVelocity( (byte) ((int) -moveParams.first), (byte) ((int) -moveParams.first));
 
 		try {
-			Thread.sleep( t );
+			Thread.sleep(moveParams.second);
 		} catch ( InterruptedException e ) {
 		}
-
 		stop();
+		
+		if(position != null && angle != null)
+			updatePosition(s, angle);
 	}
 
 	// turn left
@@ -164,6 +137,9 @@ public class Robot {
 		} catch ( InterruptedException e ) {
 		}
 		stop();
+		
+		if(this.angle != null)
+			this.angle += angle;
 	}
 
 	// turn right
@@ -176,6 +152,9 @@ public class Robot {
 		} catch ( InterruptedException e ) {
 		}
 		stop();
+		
+		if(this.angle != null)
+			this.angle -= angle;
 	}
 
 	// stop
@@ -203,16 +182,41 @@ public class Robot {
 		setLed( (byte) 0, (byte) 0 );
 	}
 
-	public void sensor( View v ) {
-		comReadWrite( new byte[] { 'q', '\r', '\n' } );
-	}
-
 	public Point getPosition() {
 		return position;
 	}
 
 	public void setPosition( Point position ) {
 		this.position = position;
+	}
+	
+	public Double getAngle() {
+		return this.angle;
+	}
+	
+	public void setAngle(Double angle) {
+		this.angle = angle;
+	}
+	
+
+	private void updatePosition(int s, double a) {
+		a = a / 360.0 * 2 * Math.PI;
+		double dX = Math.cos(a) * s;
+		double dY = Math.sin(a) * s;
+		
+		this.position.x += dX;
+		this.position.y += dY;
+	}
+	
+	private Pair<Integer, Long> calcVelocityMoveTime(int s) {
+		int v = (int) (s / (MOVE_TIME / 1000));
+		
+		if(v > VELOCITY_MIN) {
+			return new Pair<Integer, Long>(v, MOVE_TIME);
+		} else {
+			long t = (s * 1000) / VELOCITY_MIN;
+			return new Pair<Integer, Long>(VELOCITY_MIN, t);
+		}
 	}
 
 	public static Command getRandomCommand() {
@@ -225,28 +229,20 @@ public class Robot {
 
 		return commands.get( randomNumber );
 	}
-
-	public void doCommand( Command c ) {
-		doCommand(c, MOVE_DIST);
-	}
-
-	public void doCommand( Command c, int s) {
-		doCommand(c, s, MOVE_TIME);
-	}
 	
-	public void doCommand( Command c, int s, int t ) {
+	public void doCommand( Command c, int s) {
 		switch ( c ) {
 			case FORWARD:
-				moveForward( s, t );
+				moveForward( s);
 				break;
 			case BACKWARD:
-				moveBackward( s, t );
+				moveBackward( s );
 				break;
 			case LEFT:
-				turnLeft( s * (t / 1000));
+				turnLeft( s );
 				break;
 			case RIGHT:
-				turnRight( s * (t / 1000));
+				turnRight( s );
 				break;
 		}
 	}

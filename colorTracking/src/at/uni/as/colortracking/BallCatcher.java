@@ -28,8 +28,8 @@ public class BallCatcher {
 	
 	private boolean ballCatchingEnabled;
 	
-	private static final int MOVE_TIME = 400;
-	private static final int MOVE_STEP_SIZE = 15;
+	//private static final int MOVE_TIME = 400;
+	private static final int MOVE_STEP_SIZE = 20;
 	//private static final int MOVE_TIME_CENTERING = 100;
 	private static final int CAMERA_X_OFFSET = -5; // cam is on the left side
 	private static final double MIN_DISTANCE = 15; // cm
@@ -107,7 +107,7 @@ public class BallCatcher {
 				ScreenInfo.getInstance().add( "READY TO CATCH...", ScreenInfo.POS_BOTTOM_RIGHT, 4, ScreenInfo.COLOR_BLUE );
 				readyToCatch = true;
 			} else {
-				robot.moveForward( MOVE_STEP_SIZE, MOVE_TIME );
+				robot.moveForward( MOVE_STEP_SIZE );
 			}
 		} else {
 			ScreenInfo.getInstance().add( "BALL LOST...", ScreenInfo.POS_BOTTOM_RIGHT, 4, ScreenInfo.COLOR_RED );

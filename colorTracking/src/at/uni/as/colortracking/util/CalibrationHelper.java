@@ -88,7 +88,7 @@ public class CalibrationHelper  implements CvCameraViewListener2{
 				distoOld = null;
 			} else {
 				distoOld = color.getDistance();
-				robot.doCommand(calibrationStack.peek().first, calibrationStack.peek().second, Robot.MOVE_TIME);
+				robot.doCommand(calibrationStack.peek().first, calibrationStack.peek().second);
 				commandDone = true;
 			}
 		} else if(isCalAngle(calibrationStack.peek().first)) {
@@ -112,7 +112,7 @@ public class CalibrationHelper  implements CvCameraViewListener2{
 				angleOld = null;
 			} else {
 				angleOld = color.getAngle(screenRef);
-				robot.doCommand(calibrationStack.peek().first, calibrationStack.peek().second, Robot.MOVE_TIME);
+				robot.doCommand(calibrationStack.peek().first, calibrationStack.peek().second);
 				commandDone = true;
 			}
 		}

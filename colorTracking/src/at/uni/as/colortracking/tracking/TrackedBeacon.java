@@ -29,6 +29,10 @@ public class TrackedBeacon {
 		return lowerColor.getBottom();
 	}
 	
+	public Double getAngle(Point screenCenter) {
+		return lowerColor.getAngle(screenCenter);
+	}
+	
 	public double getDistance() {
 		return lowerColor.getDistance();
 	}

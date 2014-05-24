@@ -58,6 +58,27 @@ public class RobotEnviroment {
 
 		return beacons;
 	}
+	
+	public static Double calcAngle( List<TrackedBeacon> beacons, Point screenCenter ) {
+		Double angle = null;
+		
+		if ( beacons == null || beacons.size() < 1) 
+			return null;
+		
+		angle = 0.0;
+		for(TrackedBeacon b : beacons) {
+			Point p = b.getBeacon().coords();
+			
+			double dX = p.x - HALFWAY_X;
+			double dY = p.y - HALFWAY_Y;
+			double a = (Math.atan2(dY, dX) + Math.PI) / (2*Math.PI) * 360.0;
+			
+			angle += a - b.getAngle(screenCenter);
+		}
+		
+		angle /= beacons.size();
+		return angle;
+	}
 
 	public static Point calcPosition( List<TrackedBeacon> beacons, Mat homography ) {
 		Point robot = null;
