@@ -42,7 +42,7 @@ import at.uni.as.colortracking.tracking.Color;
 import at.uni.as.colortracking.tracking.ColorTrackingUtil;
 import at.uni.as.colortracking.tracking.TrackedBeacon;
 import at.uni.as.colortracking.tracking.TrackedColor;
-import at.uni.as.colortracking.util.CalibrationHelper;
+import at.uni.as.colortracking.util.RobotCalibrator;
 
 public class MainActivity extends Activity implements CvCameraViewListener2,
 		OnTouchListener {
@@ -54,7 +54,6 @@ public class MainActivity extends Activity implements CvCameraViewListener2,
 	private CameraBridgeViewBase mOpenCvCameraView;
 	private Robot robot;
 	private RobotEnviroment environment;
-	private CalibrationHelper robotCalibrator;
 
 	// Menu Items
 	private MenuItem menuHomography = null;
@@ -72,6 +71,7 @@ public class MainActivity extends Activity implements CvCameraViewListener2,
 	private boolean submitTouchedColor = false;
 	private Stack<Color> calibrationStack = new Stack<Color>();
 	private BallCatcher ballCatcher;
+	private RobotCalibrator robotCalibrator;
 	private CoordsMover coordsMover;
 	
 
@@ -158,7 +158,7 @@ public class MainActivity extends Activity implements CvCameraViewListener2,
 		} else if (item == this.menuHomography) {
 			calcHomography = true;
 		} else if (item == this.menuCatchObject) {
-			if(robot == null || robot.isConnected()) {
+			if(robot == null || !robot.isConnected()) {
 				Toast.makeText(this, "robot not connected",Toast.LENGTH_SHORT).show();
 				return true;
 			}
@@ -179,7 +179,7 @@ public class MainActivity extends Activity implements CvCameraViewListener2,
 				}
 			}
 		} else if (item == this.menuMoveTo) {	
-			if(robot == null || robot.isConnected()) {
+			if(robot == null || !robot.isConnected()) {
 				Toast.makeText(this, "robot not connected",Toast.LENGTH_SHORT).show();
 				return true;
 			}
@@ -201,8 +201,12 @@ public class MainActivity extends Activity implements CvCameraViewListener2,
 				calibration = true;
 			}
 		} else if(item == this.menuCalibrateRobot) {
-			robotCalibrator = new CalibrationHelper(robot, environment, mOpenCvCameraView, this);
-			robotCalibrator.calibrate();
+			if(robot == null || !robot.isConnected()) {
+				Toast.makeText(this, "robot not connected",Toast.LENGTH_SHORT).show();
+				return true;
+			}
+			
+			robotCalibrator = new RobotCalibrator(robot, environment);
 		}
 
 		return true;
@@ -232,9 +236,13 @@ public class MainActivity extends Activity implements CvCameraViewListener2,
 		Mat image = inputFrame.rgba();
 		
 		//TODO: remove if calibration working
-		if(robotCalibrator != null && robotCalibrator.isCalibrationDone()) {
-			while(true) {
-				robot.success();
+		if(robotCalibrator != null && !robotCalibrator.isCalibrationRunning()) {
+			if(robotCalibrator.isCalibrationFailed()) {
+				ScreenInfo.getInstance().add( "CALIBRATION FAILED" , ScreenInfo.POS_BOTTOM_LEFT, 2, ScreenInfo.COLOR_BLUE );
+			} else {
+				while(true) {
+					robot.success();
+				}
 			}
 		}
 		
@@ -244,6 +252,11 @@ public class MainActivity extends Activity implements CvCameraViewListener2,
 			//===============================================================================
 			environment.calcHomography(image);
 			calcHomography = false;
+		} else if(robotCalibrator != null && robotCalibrator.isCalibrationRunning()) {
+			
+			//ROBOT CALIBRATION
+			//===============================================================================
+			robotCalibrator.calibrate(image);
 		} else if(calibration) {
 			
 			//COLOR CALIBRATION
@@ -310,7 +323,7 @@ public class MainActivity extends Activity implements CvCameraViewListener2,
 			
 			//ROBOT INFO
 			//===============================================================================
-			if (robot.getPosition() != null) {
+			if (robot != null && robot.getPosition() != null) {
 				StringBuilder screenInfo = new StringBuilder();
 				screenInfo.append("Robot-Position: ");
 				screenInfo.append(new DecimalFormat("#0.00").format(robot.getPosition().x));
@@ -318,12 +331,26 @@ public class MainActivity extends Activity implements CvCameraViewListener2,
 				screenInfo.append(new DecimalFormat("#0.00").format(robot.getPosition().y));
 				ScreenInfo.getInstance().add( screenInfo.toString(), ScreenInfo.POS_TOP_LEFT, ScreenInfo.COLOR_WHITE );
 			}
-			if (robot.getAngle() != null) {
+			if (robot != null & robot.getAngle() != null) {
 				StringBuilder screenInfo = new StringBuilder();
 				screenInfo.append("Robot-Angle: ");
 				screenInfo.append(new DecimalFormat("#0.00").format(robot.getAngle()));
 				ScreenInfo.getInstance().add( screenInfo.toString(), ScreenInfo.POS_TOP_LEFT, ScreenInfo.COLOR_WHITE );
 			}
+			if(robot != null) {
+				StringBuilder screenInfo = new StringBuilder();
+				screenInfo.append("Robot-Calibration: ");
+				screenInfo.append("f: ");
+				screenInfo.append(Robot.Command.FORWARD.cal());
+				screenInfo.append("|b: ");
+				screenInfo.append(Robot.Command.BACKWARD.cal());
+				screenInfo.append("|l: ");
+				screenInfo.append(Robot.Command.LEFT.cal());
+				screenInfo.append("|r: ");
+				screenInfo.append(Robot.Command.RIGHT.cal());
+				ScreenInfo.getInstance().add( screenInfo.toString(), ScreenInfo.POS_TOP_LEFT, ScreenInfo.COLOR_WHITE );
+			}
+			
 			
 			
 			ScreenInfo.getInstance().add( "Beacons: ", ScreenInfo.POS_TOP_LEFT, ScreenInfo.COLOR_WHITE );
