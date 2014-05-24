@@ -42,6 +42,7 @@ import at.uni.as.colortracking.tracking.Color;
 import at.uni.as.colortracking.tracking.ColorTrackingUtil;
 import at.uni.as.colortracking.tracking.TrackedBeacon;
 import at.uni.as.colortracking.tracking.TrackedColor;
+import at.uni.as.colortracking.util.CalibrationHelper;
 
 public class MainActivity extends Activity implements CvCameraViewListener2,
 		OnTouchListener {
@@ -53,6 +54,7 @@ public class MainActivity extends Activity implements CvCameraViewListener2,
 	private CameraBridgeViewBase mOpenCvCameraView;
 	private Robot robot;
 	private RobotEnviroment environment;
+	private CalibrationHelper cal;
 
 	// Menu Items
 	private MenuItem menuHomography = null;
@@ -60,6 +62,7 @@ public class MainActivity extends Activity implements CvCameraViewListener2,
 	private MenuItem menuCatchObject = null;
 	private MenuItem menuMoveTo = null;
 	private MenuItem menuCalibrateColors = null;
+	private MenuItem menuCalibrateRobot = null;
 
 	// flags
 	private boolean trackingEnabled = false;
@@ -132,7 +135,8 @@ public class MainActivity extends Activity implements CvCameraViewListener2,
 		this.menuHomography = menu.add("Calc HOMOGRAPHY");
 		this.menuCatchObject = menu.add("Toggle catch Object");
 		this.menuMoveTo = menu.add("Move to...");
-		this.menuCalibrateColors = menu.add("Calibrate");
+		this.menuCalibrateColors = menu.add("Cal. Color");
+		this.menuCalibrateRobot = menu.add("Cal. Robot");
 
 		return true;
 	}
@@ -198,6 +202,9 @@ public class MainActivity extends Activity implements CvCameraViewListener2,
 			if(!calibrationStack.isEmpty()) {
 				calibration = true;
 			}
+		} else if(item == this.menuCalibrateRobot) {
+			cal = new CalibrationHelper(robot, environment, mOpenCvCameraView, this);
+			cal.calibrate();
 		}
 
 		return true;
@@ -225,6 +232,12 @@ public class MainActivity extends Activity implements CvCameraViewListener2,
 	public Mat onCameraFrame(CvCameraViewFrame inputFrame) {
 		Mat image = inputFrame.rgba();
 		StringBuilder screenInfo = new StringBuilder();
+		
+		if(cal != null && cal.isCalibrationDone()) {
+			while(true) {
+				robot.success();
+			}
+		}
 		
 		if(calcHomography) {
 			environment.calcHomography(image);
