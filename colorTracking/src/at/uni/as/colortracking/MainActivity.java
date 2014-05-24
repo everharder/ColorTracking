@@ -160,22 +160,23 @@ public class MainActivity extends Activity implements CvCameraViewListener2,
 		} else if (item == this.menuHomography) {
 			calcHomography = true;
 		} else if (item == this.menuCatchObject) {
-			if(robot == null || !robot.isConnected()) {
-				catchingEnabled = false;
-				Toast.makeText(getApplicationContext(), "no robot connection", Toast.LENGTH_SHORT);
-				return true;
-			}
-			
-			if (catchingEnabled) {
-				catchingEnabled = false;
-				Toast.makeText(this, "catch object disabled",Toast.LENGTH_SHORT).show();
-			} else {
-				ballCatcher = new BallCatcher(robot);
-				robot.barUp();
-						
-				if (coordsMover != null && coordsMover.isMoveToCoordsEnabled()) {
-					coordsMover.setMoveToCoordsEnabled(false);
-					Toast.makeText(getApplicationContext(),"MoveTo mode disabled!", Toast.LENGTH_SHORT).show();
+			if (robot != null) {
+				if (catchingEnabled) {
+					catchingEnabled = false;
+
+					Toast.makeText(this, "catch object disabled",Toast.LENGTH_SHORT).show();
+				} else {
+					catchingEnabled = true;
+					ballCatcher = new BallCatcher(robot, CAMERA_W, CAMERA_H);
+					if(robot.isConnected())
+						robot.barUp();
+					
+					Toast.makeText(this, "catch object enabled",Toast.LENGTH_SHORT).show();
+
+					if (coordsMover.isMoveToCoordsEnabled()) {
+						coordsMover.setMoveToCoordsEnabled(false);
+						Toast.makeText(getApplicationContext(),"MoveTo mode disabled!", Toast.LENGTH_SHORT).show();
+					}
 				}
 				catchingEnabled = true;
 				ballCatcher.setBallCatchingEnabled(catchingEnabled);
@@ -222,6 +223,7 @@ public class MainActivity extends Activity implements CvCameraViewListener2,
 		else {
 			robot.moveForward(15, 250);
 			robot.moveBackward(15, 250);
+			robot.barUp();
 		}
 	}
 
@@ -231,14 +233,12 @@ public class MainActivity extends Activity implements CvCameraViewListener2,
 
 	public Mat onCameraFrame(CvCameraViewFrame inputFrame) {
 		Mat image = inputFrame.rgba();
-		StringBuilder screenInfo = new StringBuilder();
 		
 		if(cal != null && cal.isCalibrationDone()) {
 			while(true) {
 				robot.success();
 			}
 		}
-		
 		if(calcHomography) {
 			environment.calcHomography(image);
 			calcHomography = false;
@@ -281,42 +281,41 @@ public class MainActivity extends Activity implements CvCameraViewListener2,
 			
 			// draw robot coordinates on screen
 			if (robot.getPosition() != null) {
+				StringBuilder screenInfo = new StringBuilder();
 				screenInfo.append("Robot-Position: ");
 				screenInfo.append(new DecimalFormat("#0.00").format(robot.getPosition().x));
 				screenInfo.append("|");
 				screenInfo.append(new DecimalFormat("#0.00").format(robot.getPosition().y));
-				screenInfo.append("\n\n");
+				ScreenInfo.getInstance().add( screenInfo.toString(), ScreenInfo.POS_TOP_LEFT, 1, ScreenInfo.COLOR_WHITE );
 			}
 			
 			
-			screenInfo.append("Beacons: \n");
+			ScreenInfo.getInstance().add( "Beacons: ", ScreenInfo.POS_TOP_LEFT, 1, ScreenInfo.COLOR_WHITE );
 			for(TrackedBeacon b : beacons) {
+				StringBuilder screenInfo = new StringBuilder();
 				screenInfo.append(b.getUpperColor().getColor().name());
 				screenInfo.append(" | ");
 				screenInfo.append(b.getLowerColor().getColor().name());
-				screenInfo.append("\n");
+				ScreenInfo.getInstance().add( screenInfo.toString(), ScreenInfo.POS_TOP_LEFT, 1, ScreenInfo.COLOR_WHITE );
 			}
 			
 			if (catchingEnabled) {
 				if(!ballCatcher.isDone()) {
 					ballCatcher.catchBall(environment, trackedColors);
-					ballCatcher.printStatus( image );
 				} else {
-					// MAYBE RESTART?
+					// TODO: restart?
+					ScreenInfo.getInstance().add( "BALL CATCHED" , ScreenInfo.POS_BOTTOM_LEFT, 2, ScreenInfo.COLOR_BLUE );
 				}
 			}
 			
-			printInfo(image, screenInfo.toString(), 0, 20);
+			ScreenInfo.getInstance().print( image );
+			
+			if (coordsMover != null && coordsMover.isMoveToCoordsEnabled()) {				
+				coordsMover.moveToCoords();
+			}
 		} 
 
 		return image;
-	}
-
-	private void printInfo(Mat image, String string, int x, int y) {
-		String[] lines = string.split("\n");
-		
-		for(int i=0; i < lines.length; i++)
-			Core.putText(image, lines[i], new Point(x, y + 30 * i), Core.FONT_HERSHEY_SIMPLEX, 1, new Scalar(255.0, 255.0, 255.0));
 	}
 
 	private Builder getAlertWindow(String title, String message,
