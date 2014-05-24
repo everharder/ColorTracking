@@ -8,6 +8,8 @@ import org.opencv.core.Mat;
 import org.opencv.core.Point;
 import org.opencv.core.Rect;
 
+import at.uni.as.colortracking.robot.Robot;
+
 public class TrackedColor {
 	private Rect borders;
 	private Point bottom;
@@ -35,7 +37,7 @@ public class TrackedColor {
 	}
 	
 	public double getAngle(Point ref) {
-		return Math.atan((getBottom().x - ref.x) / (ref.y - getBottom().y));
+		return (bottom.x - ref.x) * Robot.FIELD_OF_VIEW / (ref.x * 2.0); 
 	}
 	
 	public void setDistance(double distance) {

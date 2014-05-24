@@ -13,20 +13,20 @@ import at.uni.as.colortracking.tracking.TrackedBall;
 import at.uni.as.colortracking.tracking.TrackedColor;
 
 public class BallCatcher {
-	TrackedBall ball;
-	Robot robot;
-	ArrayList<String> statusMessage = new ArrayList<String>();
-	ArrayList<Scalar> statusColor = new ArrayList<Scalar>();
-	boolean centered = false;
-	boolean initalBallFound = false;
-	boolean ballInView = false;
-	boolean readyToCatch = false;
-	boolean done = false;
-	int left;
-	int right;
-	float imageWidth;
-	float imageHeight;
-	boolean ballCatchingEnabled;
+	private TrackedBall ball;
+	private Robot robot;
+	
+	private ArrayList<Scalar> statusColor = new ArrayList<Scalar>();
+	
+	private boolean centered = false;
+	private boolean initalBallFound = false;
+	private boolean ballInView = false;
+	private boolean readyToCatch = false;
+	private boolean done = false;
+	
+	private float imageHeight;
+	
+	private boolean ballCatchingEnabled;
 	
 	private static final int MOVE_TIME = 400;
 	private static final int MOVE_STEP_SIZE = 15;
@@ -35,10 +35,9 @@ public class BallCatcher {
 	private static final double MIN_DISTANCE = 15; // cm
 	private static final int MIDDLE_TOLERANCE = 50;
 
-	public BallCatcher(Robot robot, float cAMERA_W, float cAMERA_H) {
+	public BallCatcher(Robot robot, float w, float h) {
 		this.robot = robot;
-		this.imageHeight = cAMERA_H;
-		this.imageWidth = cAMERA_W;
+		this.imageHeight = h;
 	}
 
 	public void catchBall( RobotEnviroment environment, Map<Color, List<TrackedColor>> trackedColors ) {

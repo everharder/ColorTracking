@@ -19,6 +19,7 @@ public class Robot {
 
 	public static final double CATCH_DIST = 25.0;
 	public static final double COORDS_TOLERANCE = 10.0;
+	public static final double FIELD_OF_VIEW = 110.0;
 	
 	
 	public static int MOVE_DIST =   20; //cm

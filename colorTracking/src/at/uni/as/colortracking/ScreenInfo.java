@@ -14,6 +14,7 @@ public class ScreenInfo {
 	public static final int POS_TOP_RIGHT = 1;
 	public static final int POS_BOTTOM_RIGHT = 2;
 	public static final int POS_BOTTOM_LEFT = 3;
+	public static final int DEFAULT_SIZE = 1;
 
 	public static final Scalar COLOR_RED = new Scalar( 255.0, 0.0, 0.0 );
 	public static final Scalar COLOR_GREEN = new Scalar( 0.0, 255.0, 0.0 );
@@ -33,6 +34,10 @@ public class ScreenInfo {
 
 	public void add( String message, int position, int size, Scalar color ) {
 		messages.add( new ScreenInfoObject( message, position, size, color ) );
+	}
+	
+	public void add( String message, int position, Scalar color ) {
+		add(message, position, DEFAULT_SIZE, color);
 	}
 
 	public void print( Mat image ) {
