@@ -222,8 +222,8 @@ public class MainActivity extends Activity implements CvCameraViewListener2,
 		if (!robot.isConnected())
 			Toast.makeText(getApplicationContext(),"unable to connect to robot!", Toast.LENGTH_SHORT).show();
 		else {
-			robot.moveForward(10);
-			robot.moveBackward(10);
+			robot.move(10);
+			robot.move(-10);
 			robot.barUp();
 		}
 	}
@@ -331,14 +331,10 @@ public class MainActivity extends Activity implements CvCameraViewListener2,
 			if(robot != null) {
 				StringBuilder screenInfo = new StringBuilder();
 				screenInfo.append("Robot-Calibration: ");
-				screenInfo.append("f:");
-				screenInfo.append(new DecimalFormat("#0.00").format(Robot.Command.FORWARD.cal()));
-				screenInfo.append(" |b:");
-				screenInfo.append(new DecimalFormat("#0.00").format(Robot.Command.BACKWARD.cal()));
-				screenInfo.append(" |l:");
-				screenInfo.append(new DecimalFormat("#0.00").format(Robot.Command.LEFT.cal()));
-				screenInfo.append(" |r:");
-				screenInfo.append(new DecimalFormat("#0.00").format(Robot.Command.RIGHT.cal()));
+				screenInfo.append("move: ");
+				screenInfo.append(new DecimalFormat("#0.00").format(Robot.Command.MOVE.getCal()));
+				screenInfo.append(" |turn: ");
+				screenInfo.append(new DecimalFormat("#0.00").format(Robot.Command.TURN.getCal()));
 				ScreenInfo.getInstance().add( screenInfo.toString(), ScreenInfo.POS_TOP_LEFT, ScreenInfo.COLOR_WHITE );
 			}
 			

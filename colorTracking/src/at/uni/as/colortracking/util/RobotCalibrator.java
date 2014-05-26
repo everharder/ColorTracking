@@ -18,6 +18,7 @@ import at.uni.as.colortracking.tracking.TrackedColor;
 public class RobotCalibrator{
 	private static final Color COLOR_REF = Color.GREEN;
 	private static final int MAX_ERR = 5;
+	private static final int ITERATIONS = 5;
 	
 	private Point screenRef;
 	
@@ -25,6 +26,7 @@ public class RobotCalibrator{
 	private Mat homography = null;
 	
 	private int errorCount = 0;
+	private int iteraCount = 0;
 	private boolean commandDone = false;
 	private boolean calibrationRunning = false;
 	private boolean calibrationFailed = false;
@@ -41,15 +43,11 @@ public class RobotCalibrator{
 			errorCount = 0;
 			
 			//init calibrationstack: command - expected change
-			calibrationStack.add(new Pair<Robot.Command, Integer>(Command.FORWARD,  Robot.MOVE_DIST));
-			calibrationStack.add(new Pair<Robot.Command, Integer>(Command.BACKWARD, Robot.MOVE_DIST));
-			calibrationStack.add(new Pair<Robot.Command, Integer>(Command.LEFT,     Robot.MOVE_ANGL));
-			calibrationStack.add(new Pair<Robot.Command, Integer>(Command.RIGHT,    Robot.MOVE_ANGL));
+			calibrationStack.add(new Pair<Robot.Command, Integer>(Command.MOVE,  Robot.MOVE_DIST));
+			calibrationStack.add(new Pair<Robot.Command, Integer>(Command.TURN,  Robot.MOVE_ANGL));
 			
-			Robot.Command.BACKWARD.setCal(1.0);
-			Robot.Command.FORWARD.setCal(1.0);
-			Robot.Command.LEFT.setCal(1.0);
-			Robot.Command.RIGHT.setCal(1.0);
+			Robot.Command.MOVE.setCal(1.0);
+			Robot.Command.TURN.setCal(1.0);
 			
 			this.screenRef = screenRef;
 			calibrationRunning = true;
@@ -75,45 +73,52 @@ public class RobotCalibrator{
 			return;
 		}
 		
-		if(isCalDist(calibrationStack.peek().first)) {	
-			referenceObject.calcDistance(homography);
+		referenceObject.calcDistance(homography);
+		if(!commandDone) {
+			previousValue = getReferenceValue(calibrationStack.peek().first, referenceObject);
+			robot.doCommand(calibrationStack.peek().first, calibrationStack.peek().second);
+			commandDone = true;
+		} else if(previousValue != null) {
+			Double cal = null;
+			if(isCalDist(calibrationStack.peek().first)) 	
+				cal = ((double)calibrationStack.peek().second) / Math.abs((double) (previousValue - referenceObject.getDistance()));
+			if(isCalAngle(calibrationStack.peek().first)) 
+				cal = ((double)calibrationStack.peek().second) / Math.abs((double) (previousValue - referenceObject.getAngle(screenRef)));
+				
+			robot.doCommand(calibrationStack.peek().first, -calibrationStack.peek().second);
 			
-			if(commandDone && previousValue != null && referenceObject.getDistance() > 0) {
-				double cal = ((double)calibrationStack.peek().second) / Math.abs((double) (previousValue - referenceObject.getDistance()));
-				robot.doCommand(calibrationStack.peek().first, -calibrationStack.peek().second);
-				
-				commandDone = false;
-				previousValue = null;
+			commandDone = false;
+			previousValue = null;
+			
+			if(iteraCount == 0)
 				calibrationStack.peek().first.setCal(cal);
+			else
+				calibrationStack.peek().first.setCal((calibrationStack.peek().first.getCal() + cal) / 2.0);
+			
+			if(++iteraCount >= ITERATIONS) {
 				calibrationStack.pop();
-			} else {
-				previousValue = referenceObject.getDistance();
-				robot.doCommand(calibrationStack.peek().first, calibrationStack.peek().second);
-				commandDone = true;
-			}
-		} else if(isCalAngle(calibrationStack.peek().first)) {
-			if(commandDone && previousValue != null) {
-				double cal = ((double)calibrationStack.peek().second) / Math.abs((double) (previousValue - referenceObject.getAngle(screenRef)));
-				robot.doCommand(calibrationStack.peek().first, -calibrationStack.peek().second);
-				
-				commandDone = false;
-				previousValue = null;
-				calibrationStack.peek().first.setCal(cal);
-				calibrationStack.pop();
-			} else {
-				previousValue = referenceObject.getAngle(screenRef);
-				robot.doCommand(calibrationStack.peek().first, calibrationStack.peek().second);
-				commandDone = true;
-			}
+				iteraCount = 0;
+			}		
+		} else {
+			calibrationFailed = true;
+			calibrationRunning = false;
 		}
 	}
 	
+	private Double getReferenceValue(Command c, TrackedColor referenceObject) {
+		if(isCalDist(c))
+			return referenceObject.getDistance();
+		if(isCalAngle(c))
+			return referenceObject.getAngle(screenRef);
+		return null;
+	}
+
 	private boolean isCalDist(Command c) {
-		return c == Command.FORWARD || c == Command.BACKWARD;
+		return c == Command.MOVE;
 	}
 	
 	private boolean isCalAngle(Command c) {
-		return c == Command.LEFT || c == Command.RIGHT;
+		return c == Command.TURN;
 	}
 	
 	public boolean isCalibrationRunning() {

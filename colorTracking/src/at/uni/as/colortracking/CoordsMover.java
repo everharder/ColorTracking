@@ -25,7 +25,7 @@ public class CoordsMover {
 		Point target = targetCoords.peek();
 
 		if ( robot.getPosition() == null || robot.getAngle() == null) {
-			robot.turnLeft( Robot.MOVE_ANGL );
+			robot.turn( Robot.MOVE_ANGL );
 
 		} else if ( Math.abs( robot.getPosition().x - target.x ) < Robot.COORDS_TOLERANCE && Math.abs( robot.getPosition().y - target.y ) < Robot.COORDS_TOLERANCE ) {
 			// robot is at target coords
@@ -38,17 +38,18 @@ public class CoordsMover {
 			double angle = (Math.atan2(deltaY, deltaX) + Math.PI) / (2 * Math.PI) * 360.0;
 			double disto = Math.sqrt(Math.pow(deltaX, 2) + Math.pow(deltaY, 2));
 
-			if(robot.getAngle() - Robot.ANGLE_TOLERANCE > angle)
-				robot.turnRight((int) angle);
-			else if(robot.getAngle() + Robot.ANGLE_TOLERANCE < angle)
-				robot.turnLeft((int) angle);
+			if(Math.abs(angle - robot.getAngle()) < Robot.ANGLE_TOLERANCE) {
+				robot.move((int) disto);
+			} else if(angle - robot.getAngle() < 180)
+				robot.turn((int) Math.abs(angle - robot.getAngle()));
 			else
-				robot.moveForward((int) disto);
+				robot.turn(-1*((int) Math.abs(angle - robot.getAngle())));
 		}
 	}
 	
 	public void setTargetCoords( List<Point> coords ) {
-		if ( coords == null || coords.size() == 0 ) return;
+		if ( coords == null || coords.size() == 0 ) 
+			return;
 
 		targetCoords.clear();
 		targetCoords.addAll(coords);

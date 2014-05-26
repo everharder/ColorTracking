@@ -95,12 +95,12 @@ public class Robot {
 		comReadWrite( new byte[] { 'o', value, '\r', '\n' } );
 	}
 
-	public void moveForward( int s ) {
+	public void move( int s ) {
 		if(angle != null)
 			updatePosition(s, angle);
 		
-		s *= Command.FORWARD.cal();
-		Pair<Integer, Long> moveParams = calcVelocityMoveTime(s);
+		int d = (int) (s * Command.MOVE.getCal());
+		Pair<Integer, Long> moveParams = calcVelocityMoveTime(d);
 		setVelocity( (byte) ((int)moveParams.first), (byte) ((int)moveParams.first));
 
 		try {
@@ -109,47 +109,15 @@ public class Robot {
 		}
 		stop();
 	}
-	
-	// move backward
-	public void moveBackward( int s ) {
-		if(angle != null)
-			updatePosition(s, angle);
-		
-		s *= Command.BACKWARD.cal();
-		Pair<Integer, Long> moveParams = calcVelocityMoveTime(s);
-		setVelocity( (byte) ((int) -moveParams.first), (byte) ((int) -moveParams.first));
-
-		try {
-			Thread.sleep(moveParams.second);
-		} catch ( InterruptedException e ) {
-		}
-		stop();			
-	}
 
 	// turn left
-	public void turnLeft( int angle ) {
+	public void turn( int angle ) {
 		if(this.angle != null)
 			this.angle += angle;
 		
-		angle *= Command.LEFT.cal();
-		Pair<Integer, Long> moveParams = calcVelocityMoveTime((int) angle);
-		setVelocity( (byte) 0, (byte) ((int)moveParams.first) );
-
-		try {
-			Thread.sleep( moveParams.second );
-		} catch ( InterruptedException e ) {
-		}
-		stop();
-	}
-
-	// turn right
-	public void turnRight( int angle ) {
-		if(this.angle != null)
-			this.angle -= angle;
-		
-		angle *= Command.RIGHT.cal();
-		Pair<Integer, Long> moveParams = calcVelocityMoveTime((int) angle);
-		setVelocity((byte) ((int)moveParams.first), (byte) 0);
+		int a = (int) (angle * Command.TURN.getCal());
+		Pair<Integer, Long> moveParams = calcVelocityMoveTime(a);
+		setVelocity( (byte) ((int)-moveParams.first), (byte) ((int)moveParams.first) );
 
 		try {
 			Thread.sleep( moveParams.second );
@@ -210,20 +178,16 @@ public class Robot {
 	}
 	
 	private Pair<Integer, Long> calcVelocityMoveTime(int s) {
-		int v = (int) (s / (MOVE_TIME / 1000));
+		long t = MOVE_TIME;
+		int v = (int) (s / (t / 1000));
 		
-		if(v > VELOCITY_MIN) {
-			if(s < 0)
-				return new Pair<Integer, Long>(-v, MOVE_TIME);
-			else
-				return new Pair<Integer, Long>(v, MOVE_TIME);
-		} else {
-			long t = Math.abs((s * 1000) / VELOCITY_MIN);
-			if(s < 0) 
-				return new Pair<Integer, Long>(-VELOCITY_MIN, t);
-			else
-				return new Pair<Integer, Long>(VELOCITY_MIN, t);
+		if(v < VELOCITY_MIN) {
+			v = VELOCITY_MIN;
+			t = Math.abs((s * 1000) / v);
 		}
+		
+		v = (s < 0) ? -v : v;
+		return new Pair<Integer, Long>(v, t);
 	}
 
 	public static Command getRandomCommand() {
@@ -239,17 +203,11 @@ public class Robot {
 	
 	public void doCommand( Command c, int s) {
 		switch ( c ) {
-			case FORWARD:
-				moveForward( s);
+			case MOVE:
+				move( s );
 				break;
-			case BACKWARD:
-				moveBackward( s );
-				break;
-			case LEFT:
-				turnLeft( s );
-				break;
-			case RIGHT:
-				turnRight( s );
+			case TURN:
+				turn( s );
 				break;
 		}
 	}
@@ -267,10 +225,8 @@ public class Robot {
 	}
 
 	public enum Command {
-		FORWARD	(1.0), 
-		BACKWARD(1.0), 
-		LEFT	(1.0), 
-		RIGHT	(1.0);
+		MOVE	(1.0), 
+		TURN	(1.0);
 		
 		private double calibrationFactor;
 		
@@ -278,7 +234,7 @@ public class Robot {
 			this.calibrationFactor = calibrationFactor;
 		}
 		
-		public double cal() {
+		public double getCal() {
 			return calibrationFactor;
 		}
 		

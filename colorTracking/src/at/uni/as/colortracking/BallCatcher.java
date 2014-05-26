@@ -65,7 +65,7 @@ public class BallCatcher {
 				grabBall();
 			}
 		} else {
-			robot.turnLeft( MOVE_STEP_SIZE ); // turn left until we see a ball
+			robot.turn( MOVE_STEP_SIZE ); // turn left until we see a ball
 		}
 	}
 
@@ -78,15 +78,15 @@ public class BallCatcher {
 		
 		if( ballInView) {
 			if(ball.getBallColor().getBottom().x < imgWidthMin ) {
-				robot.turnLeft( MOVE_STEP_SIZE );
+				robot.turn( MOVE_STEP_SIZE );
 			} else if (ball.getBallColor().getBottom().x > imgWidthMax ) {
-				robot.turnRight( MOVE_STEP_SIZE );
+				robot.turn( -MOVE_STEP_SIZE );
 			} else {
 				centered = true;
 				ScreenInfo.getInstance().add( "CENTERED!", ScreenInfo.POS_BOTTOM_RIGHT, 4, ScreenInfo.COLOR_BLUE );
 			}
 		} else {
-			robot.turnLeft( MOVE_STEP_SIZE ); // turn left until we see a ball again
+			robot.turn( MOVE_STEP_SIZE ); // turn left until we see a ball again
 		}
 		
 	}
@@ -107,7 +107,7 @@ public class BallCatcher {
 				ScreenInfo.getInstance().add( "READY TO CATCH...", ScreenInfo.POS_BOTTOM_RIGHT, 4, ScreenInfo.COLOR_BLUE );
 				readyToCatch = true;
 			} else {
-				robot.moveForward( MOVE_STEP_SIZE );
+				robot.move( MOVE_STEP_SIZE );
 			}
 		} else {
 			ScreenInfo.getInstance().add( "BALL LOST...", ScreenInfo.POS_BOTTOM_RIGHT, 4, ScreenInfo.COLOR_RED );
