@@ -27,10 +27,10 @@ public class BallCatcher {
 	float imageWidth;
 	float imageHeight;
 	
-	private static final int MOVE_TIME = 400;
-	private static final int MOVE_STEP_SIZE = 15;
+	private static final int MOVE_TIME = 250;
+	private static final int MOVE_STEP_SIZE = 12;
 	private static final int MOVE_TIME_CENTERING = 100;
-	private static final int CAMERA_X_OFFSET = -5; // cam is on the left side
+	private static final int CAMERA_X_OFFSET = -20; // cam is on the left side
 	private static final double MIN_DISTANCE = 15; // cm
 	private static final int MIDDLE_TOLERANCE = 50;
 
