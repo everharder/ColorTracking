@@ -20,10 +20,10 @@ public class Robot {
 	public static final double CATCH_DIST = 25.0;
 	public static final double COORDS_TOLERANCE = 10.0;
 	public static final double ANGLE_TOLERANCE = 5.0;
-	public static final double FIELD_OF_VIEW = 110.0;
+	public static final double FIELD_OF_VIEW = 70.0;
 	
-	public static int MOVE_DIST =   	20; //cm
-	public static long MOVE_TIME =  	  1000; //ms
+	public static int MOVE_DIST =   	10; //cm
+	public static long MOVE_TIME =  	  2000; //ms
 	public static int MOVE_ANGL =   	 5; //TODO: measure estimated val.
 	public static int VELOCITY_MIN =	20; //cm per second
 	public static final int BEACONNOTFOUND_DELAY = 500; //ms
@@ -96,8 +96,10 @@ public class Robot {
 	}
 
 	public void moveForward( int s ) {
-		s *= Command.FORWARD.cal();
+		if(angle != null)
+			updatePosition(s, angle);
 		
+		s *= Command.FORWARD.cal();
 		Pair<Integer, Long> moveParams = calcVelocityMoveTime(s);
 		setVelocity( (byte) ((int)moveParams.first), (byte) ((int)moveParams.first));
 
@@ -106,13 +108,13 @@ public class Robot {
 		} catch ( InterruptedException e ) {
 		}
 		stop();
-		
-		if(position != null && angle != null)
-			updatePosition(s, angle);
 	}
 	
 	// move backward
 	public void moveBackward( int s ) {
+		if(angle != null)
+			updatePosition(s, angle);
+		
 		s *= Command.BACKWARD.cal();
 		Pair<Integer, Long> moveParams = calcVelocityMoveTime(s);
 		setVelocity( (byte) ((int) -moveParams.first), (byte) ((int) -moveParams.first));
@@ -121,40 +123,39 @@ public class Robot {
 			Thread.sleep(moveParams.second);
 		} catch ( InterruptedException e ) {
 		}
-		stop();
-		
-		if(position != null && angle != null)
-			updatePosition(s, angle);
+		stop();			
 	}
 
 	// turn left
-	public void turnLeft( double angle ) {
+	public void turnLeft( int angle ) {
+		if(this.angle != null)
+			this.angle += angle;
+		
 		angle *= Command.LEFT.cal();
-		setVelocity( (byte) 0, (byte) angle );
+		Pair<Integer, Long> moveParams = calcVelocityMoveTime((int) angle);
+		setVelocity( (byte) 0, (byte) ((int)moveParams.first) );
 
 		try {
-			Thread.sleep( MOVE_TIME );
+			Thread.sleep( moveParams.second );
 		} catch ( InterruptedException e ) {
 		}
 		stop();
-		
-		if(this.angle != null)
-			this.angle += angle;
 	}
 
 	// turn right
-	public void turnRight( double angle ) {
+	public void turnRight( int angle ) {
+		if(this.angle != null)
+			this.angle -= angle;
+		
 		angle *= Command.RIGHT.cal();
-		setVelocity( (byte) angle, (byte) 0 );
+		Pair<Integer, Long> moveParams = calcVelocityMoveTime((int) angle);
+		setVelocity((byte) ((int)moveParams.first), (byte) 0);
 
 		try {
-			Thread.sleep( MOVE_TIME );
+			Thread.sleep( moveParams.second );
 		} catch ( InterruptedException e ) {
 		}
 		stop();
-		
-		if(this.angle != null)
-			this.angle -= angle;
 	}
 
 	// stop
@@ -212,10 +213,16 @@ public class Robot {
 		int v = (int) (s / (MOVE_TIME / 1000));
 		
 		if(v > VELOCITY_MIN) {
-			return new Pair<Integer, Long>(v, MOVE_TIME);
+			if(s < 0)
+				return new Pair<Integer, Long>(-v, MOVE_TIME);
+			else
+				return new Pair<Integer, Long>(v, MOVE_TIME);
 		} else {
-			long t = (s * 1000) / VELOCITY_MIN;
-			return new Pair<Integer, Long>(VELOCITY_MIN, t);
+			long t = Math.abs((s * 1000) / VELOCITY_MIN);
+			if(s < 0) 
+				return new Pair<Integer, Long>(-VELOCITY_MIN, t);
+			else
+				return new Pair<Integer, Long>(VELOCITY_MIN, t);
 		}
 	}
 

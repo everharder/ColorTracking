@@ -233,4 +233,18 @@ public class ColorTrackingUtil {
 	public static void drawScreenCenter(Mat image, int w, int h, Scalar color, int size) {
 		Core.line(image, new Point(w / 2, 0.0), new Point(w / 2, h) , color, size);
 	}
+
+	public static TrackedColor getBiggestContour(List<TrackedColor> list) {
+		TrackedColor maxContour = null;
+		double maxArea = -1;
+		
+		for(TrackedColor c : list) {
+			if(c.getBorders().area() > maxArea) {
+				maxContour = c;
+				maxArea = c.getBorders().area();
+			}
+		}
+		
+		return maxContour;
+	}
 }

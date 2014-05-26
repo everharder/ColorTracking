@@ -39,9 +39,9 @@ public class CoordsMover {
 			double disto = Math.sqrt(Math.pow(deltaX, 2) + Math.pow(deltaY, 2));
 
 			if(robot.getAngle() - Robot.ANGLE_TOLERANCE > angle)
-				robot.turnRight(angle);
+				robot.turnRight((int) angle);
 			else if(robot.getAngle() + Robot.ANGLE_TOLERANCE < angle)
-				robot.turnLeft(angle);
+				robot.turnLeft((int) angle);
 			else
 				robot.moveForward((int) disto);
 		}
@@ -52,6 +52,7 @@ public class CoordsMover {
 
 		targetCoords.clear();
 		targetCoords.addAll(coords);
+		moveToCoordsEnabled = true;
 	}
 	
 	public void setMoveToCoordsEnabled(boolean enabled) {

@@ -1,5 +1,7 @@
 package at.uni.as.colortracking.util;
 
+import java.util.List;
+import java.util.Map;
 import java.util.Stack;
 
 import org.opencv.core.Mat;
@@ -32,7 +34,7 @@ public class RobotCalibrator{
 	
 	private Stack<Pair<Robot.Command, Integer>> calibrationStack = new Stack<Pair<Command,Integer>>();
 	
-	public RobotCalibrator(Robot robot, RobotEnviroment enviroment) {
+	public RobotCalibrator(Robot robot, RobotEnviroment enviroment, Point screenRef) {
 			this.robot = robot;
 			this.homography = enviroment.getHomography();
 			
@@ -40,10 +42,16 @@ public class RobotCalibrator{
 			
 			//init calibrationstack: command - expected change
 			calibrationStack.add(new Pair<Robot.Command, Integer>(Command.FORWARD,  Robot.MOVE_DIST));
-			calibrationStack.add(new Pair<Robot.Command, Integer>(Command.BACKWARD,-Robot.MOVE_DIST));
+			calibrationStack.add(new Pair<Robot.Command, Integer>(Command.BACKWARD, Robot.MOVE_DIST));
 			calibrationStack.add(new Pair<Robot.Command, Integer>(Command.LEFT,     Robot.MOVE_ANGL));
-			calibrationStack.add(new Pair<Robot.Command, Integer>(Command.RIGHT,   -Robot.MOVE_ANGL));
+			calibrationStack.add(new Pair<Robot.Command, Integer>(Command.RIGHT,    Robot.MOVE_ANGL));
 			
+			Robot.Command.BACKWARD.setCal(1.0);
+			Robot.Command.FORWARD.setCal(1.0);
+			Robot.Command.LEFT.setCal(1.0);
+			Robot.Command.RIGHT.setCal(1.0);
+			
+			this.screenRef = screenRef;
 			calibrationRunning = true;
 	}
 
@@ -53,12 +61,14 @@ public class RobotCalibrator{
 			return;
 		} 
 		
-		TrackedColor referenceObject = TrackedColor.getBiggest(ColorTrackingUtil.detectColor(image, COLOR_REF, COLOR_REF.tol()));
-		if(referenceObject == null) {
+		Map<Color, List<TrackedColor>> trackedColors = ColorTrackingUtil.detectColors(image);		
+		if(trackedColors.get(COLOR_REF) == null || trackedColors.get(COLOR_REF).size() == 0 || homography == null) {
 			errorCount++;
+			return;
 		}
+		TrackedColor referenceObject = ColorTrackingUtil.getBiggestContour(trackedColors.get(COLOR_REF));
 		
-		if(errorCount > MAX_ERR || homography == null) {
+		if(errorCount > MAX_ERR) {
 			calibrationRunning = false;
 			calibrationFailed = true;
 			
@@ -69,10 +79,13 @@ public class RobotCalibrator{
 			referenceObject.calcDistance(homography);
 			
 			if(commandDone && previousValue != null && referenceObject.getDistance() > 0) {
-				calibrationStack.pop().first.setCal(((double)calibrationStack.peek().second) / Math.abs((double) (previousValue - referenceObject.getDistance())));
+				double cal = ((double)calibrationStack.peek().second) / Math.abs((double) (previousValue - referenceObject.getDistance()));
+				robot.doCommand(calibrationStack.peek().first, -calibrationStack.peek().second);
 				
 				commandDone = false;
 				previousValue = null;
+				calibrationStack.peek().first.setCal(cal);
+				calibrationStack.pop();
 			} else {
 				previousValue = referenceObject.getDistance();
 				robot.doCommand(calibrationStack.peek().first, calibrationStack.peek().second);
@@ -80,10 +93,13 @@ public class RobotCalibrator{
 			}
 		} else if(isCalAngle(calibrationStack.peek().first)) {
 			if(commandDone && previousValue != null) {
-				calibrationStack.pop().first.setCal(((double)calibrationStack.peek().second) / Math.abs((double) (previousValue - referenceObject.getAngle(screenRef))));
+				double cal = ((double)calibrationStack.peek().second) / Math.abs((double) (previousValue - referenceObject.getAngle(screenRef)));
+				robot.doCommand(calibrationStack.peek().first, -calibrationStack.peek().second);
 				
 				commandDone = false;
 				previousValue = null;
+				calibrationStack.peek().first.setCal(cal);
+				calibrationStack.pop();
 			} else {
 				previousValue = referenceObject.getAngle(screenRef);
 				robot.doCommand(calibrationStack.peek().first, calibrationStack.peek().second);
@@ -93,7 +109,7 @@ public class RobotCalibrator{
 	}
 	
 	private boolean isCalDist(Command c) {
-		return c == Command.BACKWARD || c == Command.BACKWARD;
+		return c == Command.FORWARD || c == Command.BACKWARD;
 	}
 	
 	private boolean isCalAngle(Command c) {

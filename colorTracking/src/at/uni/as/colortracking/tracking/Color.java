@@ -3,9 +3,9 @@ package at.uni.as.colortracking.tracking;
 import org.opencv.core.Scalar;
 
 public enum Color {
-	RED		(new Scalar(250,  50,  40), new Scalar( 5,  30,  30)),
-	BLUE	(new Scalar( 20,  10,  30), new Scalar( 5,  30,  30)),
-	YELLOW	(new Scalar(175, 190, 110), new Scalar( 5,  30,  30)),
+	RED		(new Scalar(250,  50,  40), new Scalar( 5,  50,  30)),
+	BLUE	(new Scalar( 20,  10,  30), new Scalar( 5,  50,  30)),
+	YELLOW	(new Scalar(175, 190, 110), new Scalar( 5,  50,  30)),
 	WHITE	(new Scalar(215, 190, 150), new Scalar( 0,  15,  15)),
 	GREEN   (new Scalar(0, 120, 70), new Scalar(10, 60, 60));
 

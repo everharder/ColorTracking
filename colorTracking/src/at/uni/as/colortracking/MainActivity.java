@@ -173,7 +173,7 @@ public class MainActivity extends Activity implements CvCameraViewListener2,
 				
 				Toast.makeText(this, "catch object enabled",Toast.LENGTH_SHORT).show();
 
-				if (coordsMover.isMoveToCoordsEnabled()) {
+				if (coordsMover != null && coordsMover.isMoveToCoordsEnabled()) {
 					coordsMover.setMoveToCoordsEnabled(false);
 					Toast.makeText(getApplicationContext(),"MoveTo mode disabled!", Toast.LENGTH_SHORT).show();
 				}
@@ -201,12 +201,12 @@ public class MainActivity extends Activity implements CvCameraViewListener2,
 				calibration = true;
 			}
 		} else if(item == this.menuCalibrateRobot) {
-			if(robot == null || !robot.isConnected()) {
+			/*if(robot == null || !robot.isConnected()) {
 				Toast.makeText(this, "robot not connected",Toast.LENGTH_SHORT).show();
 				return true;
-			}
+			}*/
 			
-			robotCalibrator = new RobotCalibrator(robot, environment);
+			robotCalibrator = new RobotCalibrator(robot, environment, new Point(CAMERA_W / 2, CAMERA_H / 2) );
 		}
 
 		return true;
@@ -235,23 +235,14 @@ public class MainActivity extends Activity implements CvCameraViewListener2,
 	public Mat onCameraFrame(CvCameraViewFrame inputFrame) {
 		Mat image = inputFrame.rgba();
 		
-		//TODO: remove if calibration working
-		if(robotCalibrator != null && !robotCalibrator.isCalibrationRunning()) {
-			if(robotCalibrator.isCalibrationFailed()) {
-				ScreenInfo.getInstance().add( "CALIBRATION FAILED" , ScreenInfo.POS_BOTTOM_LEFT, 2, ScreenInfo.COLOR_BLUE );
-			} else {
-				while(true) {
-					robot.success();
-				}
-			}
-		}
-		
 		if(calcHomography) {
 			
 			//HOMOGRAPHY
 			//===============================================================================
 			environment.calcHomography(image);
 			calcHomography = false;
+		} else if(robotCalibrator != null && (robotCalibrator.isCalibrationFailed() || !robotCalibrator.isCalibrationRunning())) {
+			robotCalibrator = null;
 		} else if(robotCalibrator != null && robotCalibrator.isCalibrationRunning()) {
 			
 			//ROBOT CALIBRATION
@@ -340,14 +331,14 @@ public class MainActivity extends Activity implements CvCameraViewListener2,
 			if(robot != null) {
 				StringBuilder screenInfo = new StringBuilder();
 				screenInfo.append("Robot-Calibration: ");
-				screenInfo.append("f: ");
-				screenInfo.append(Robot.Command.FORWARD.cal());
-				screenInfo.append("|b: ");
-				screenInfo.append(Robot.Command.BACKWARD.cal());
-				screenInfo.append("|l: ");
-				screenInfo.append(Robot.Command.LEFT.cal());
-				screenInfo.append("|r: ");
-				screenInfo.append(Robot.Command.RIGHT.cal());
+				screenInfo.append("f:");
+				screenInfo.append(new DecimalFormat("#0.00").format(Robot.Command.FORWARD.cal()));
+				screenInfo.append(" |b:");
+				screenInfo.append(new DecimalFormat("#0.00").format(Robot.Command.BACKWARD.cal()));
+				screenInfo.append(" |l:");
+				screenInfo.append(new DecimalFormat("#0.00").format(Robot.Command.LEFT.cal()));
+				screenInfo.append(" |r:");
+				screenInfo.append(new DecimalFormat("#0.00").format(Robot.Command.RIGHT.cal()));
 				ScreenInfo.getInstance().add( screenInfo.toString(), ScreenInfo.POS_TOP_LEFT, ScreenInfo.COLOR_WHITE );
 			}
 			
