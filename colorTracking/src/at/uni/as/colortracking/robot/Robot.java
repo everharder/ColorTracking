@@ -23,10 +23,9 @@ public class Robot {
 	public static final double FIELD_OF_VIEW = 70.0;
 	
 	public static int MOVE_DIST =   	10; //cm
-	public static long MOVE_TIME =  	  2000; //ms
+	public static long MOVE_TIME =    2000; //ms
 	public static int MOVE_ANGL =   	 5; //TODO: measure estimated val.
 	public static int VELOCITY_MIN =	20; //cm per second
-	public static final int BEACONNOTFOUND_DELAY = 500; //ms
 	
 	private FTDriver com;
 	private Point position = null;

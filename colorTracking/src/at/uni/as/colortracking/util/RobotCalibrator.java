@@ -62,18 +62,17 @@ public class RobotCalibrator{
 		Map<Color, List<TrackedColor>> trackedColors = ColorTrackingUtil.detectColors(image);		
 		if(trackedColors.get(COLOR_REF) == null || trackedColors.get(COLOR_REF).size() == 0 || homography == null) {
 			errorCount++;
-			return;
-		}
-		TrackedColor referenceObject = ColorTrackingUtil.getBiggestContour(trackedColors.get(COLOR_REF));
-		
-		if(errorCount > MAX_ERR) {
-			calibrationRunning = false;
-			calibrationFailed = true;
 			
+			if(errorCount > MAX_ERR) {
+				calibrationRunning = false;
+				calibrationFailed = true;
+			}
 			return;
 		}
 		
+		TrackedColor referenceObject = ColorTrackingUtil.getBiggestContour(trackedColors.get(COLOR_REF));
 		referenceObject.calcDistance(homography);
+		
 		if(!commandDone) {
 			previousValue = getReferenceValue(calibrationStack.peek().first, referenceObject);
 			robot.doCommand(calibrationStack.peek().first, calibrationStack.peek().second);
