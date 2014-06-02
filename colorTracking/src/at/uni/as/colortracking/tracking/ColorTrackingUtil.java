@@ -178,7 +178,7 @@ public class ColorTrackingUtil {
 				}
 				
 				//draw angle
-				Core.putText(image, DecimalFormat.getIntegerInstance().format(t.getAngle(screenCenter)), new Point(t.getBottom().x - 10, t.getBottom().y - 20), Core.FONT_HERSHEY_SIMPLEX, 0.5, new Scalar(255.0, 255.0, 255.0));
+				Core.putText(image, DecimalFormat.getIntegerInstance().format(t.getAngle(screenCenter)), new Point(t.getBottom().x - 10, t.getBottom().y - 30), Core.FONT_HERSHEY_SIMPLEX, 0.5, new Scalar(255.0, 255.0, 255.0));
 			}
 		}
 

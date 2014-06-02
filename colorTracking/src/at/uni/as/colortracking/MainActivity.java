@@ -153,6 +153,9 @@ public class MainActivity extends Activity implements CvCameraViewListener2,
 					Toast.makeText(this, "started tracking without homography", Toast.LENGTH_SHORT).show();
 				else
 					Toast.makeText(this, "started tracking", Toast.LENGTH_SHORT).show();
+				if(robot != null)
+					robot.setPosition(null);
+					robot.setAngle(null);
 			}
 
 		} else if (item == this.menuHomography) {
@@ -288,14 +291,16 @@ public class MainActivity extends Activity implements CvCameraViewListener2,
 			
 			//LOCALIZATION
 			//===============================================================================
-			if(environment.getHomography() != null) {
+			if(robot.getAngle() == null) {
+				/*Double angle = RobotEnviroment.calcAngle(beacons, new Point(CAMERA_W / 2, CAMERA_H / 2));
+				if(angle != null)
+					robot.setAngle(angle);*/
+				robot.setAngle(90.0);
+			}
+			if(environment.getHomography() != null && robot.getPosition() == null) {
 				Point position = RobotEnviroment.calcPosition(beacons, environment.getHomography());
 				if(position != null)
 					robot.setPosition(position);
-				
-				Double angle = RobotEnviroment.calcAngle(beacons, new Point(CAMERA_W / 2, CAMERA_H / 2));
-				if(angle != null)
-					robot.setAngle(angle);
 			}
 			
 			//BALL CATCHING

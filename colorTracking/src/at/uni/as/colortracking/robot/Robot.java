@@ -19,13 +19,15 @@ public class Robot {
 
 	public static final double CATCH_DIST = 25.0;
 	public static final double COORDS_TOLERANCE = 10.0;
-	public static final double ANGLE_TOLERANCE = 5.0;
+	public static final double ANGLE_TOLERANCE = 10.0;
 	public static final double FIELD_OF_VIEW = 70.0;
 	
-	public static int MOVE_DIST =   	10; //cm
-	public static long MOVE_TIME =    2000; //ms
+	public static int MOVE_DIST =   	5; //cm
+	public static long MOVE_TIME =    5000; //ms
 	public static int MOVE_ANGL =   	 5; //TODO: measure estimated val.
-	public static int VELOCITY_MIN =	20; //cm per second
+	public static int VELOCITY_MIN =	15; //cm per second
+	
+	public static Point home = new Point(10.0, 10.0);
 	
 	private FTDriver com;
 	private Point position = null;
@@ -111,10 +113,13 @@ public class Robot {
 
 	// turn left
 	public void turn( int angle ) {
-		if(this.angle != null)
+		if(this.angle != null) {
 			this.angle += angle;
+			if(this.angle < 0)
+				this.angle += 360.0;
+		}
 		
-		int a = (int) (angle * Command.TURN.getCal());
+		int a = (int) (angle * Command.TURN.getCal() * 0.5);
 		Pair<Integer, Long> moveParams = calcVelocityMoveTime(a);
 		setVelocity( (byte) ((int)-moveParams.first), (byte) ((int)moveParams.first) );
 
@@ -168,12 +173,19 @@ public class Robot {
 	
 
 	private void updatePosition(int s, double a) {
-		a = a / 360.0 * 2 * Math.PI;
-		double dX = Math.cos(a) * s;
-		double dY = Math.sin(a) * s;
+		if(a < 0)
+			a += 360.0;
+	
+		double dX = Math.cos(Math.toRadians(a)) * s;
+		double dY = Math.sin(Math.toRadians(a)) * s;
 		
 		this.position.x += dX;
 		this.position.y += dY;
+		
+		if(dY < 0)
+			ledOn();
+		else 
+			ledOff();
 	}
 	
 	private Pair<Integer, Long> calcVelocityMoveTime(int s) {
@@ -240,5 +252,11 @@ public class Robot {
 		public void setCal(double calibrationFactor) {
 			this.calibrationFactor = calibrationFactor;
 		}
+	}
+	
+	public boolean isAtHome() {
+		if(position == null)
+			return false;
+		return Math.abs(position.x - home.x) < COORDS_TOLERANCE && Math.abs(position.y - home.y) < COORDS_TOLERANCE;  
 	}
 }
