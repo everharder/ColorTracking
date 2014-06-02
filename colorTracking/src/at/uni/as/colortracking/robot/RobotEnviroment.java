@@ -59,57 +59,60 @@ public class RobotEnviroment {
 		return beacons;
 	}
 	
-	public static Double calcAngle( List<TrackedBeacon> beacons, Point screenCenter, Robot robot ) {
-		Double angle = null;
-		
-		if ( beacons == null || beacons.size() < 1) 
+	/**
+	 * @param beacon
+	 * @param screenCenter
+	 * @param robot
+	 * @return Robot's angle in degrees.
+	 */
+	public static Double calcAngle( TrackedBeacon beacon, Point screenCenter, Robot robot ) {		
+		if (beacon == null || robot == null) 
 			return null;
 		
-		angle = 0.0;
-		for(TrackedBeacon b : beacons) {
-			Point p = b.getBeacon().coords();
-			Point r = robot.getPosition();
-			double alpha = b.getAngle(screenCenter);
-			
-			// First quadrant
-			if(r.x < p.x && r.y < p.y){
-				double dX = p.x - r.x;
-				double dY = p.y - r.y;
-				double beta = Math.atan(dY/dX);
-				angle += beta - alpha;
-			}
-			// Second quadrant
-			else if(r.x > p.x && r.y < p.y){
-				double dX = r.x - p.x;
-				double dY = p.y - r.y;
-				double beta = Math.atan(dY/dX);
-				angle += Math.PI/2 + beta - alpha;
-			}
-			// Third quadrant
-			else if(r.x > p.x && r.y > p.y){
-				double dX = r.x - p.x;
-				double dY = r.y - p.y;
-				double beta = Math.atan(dY/dX);
-				angle += Math.PI + beta - alpha;
-			}
-			// Fourth quadrant
-			else if(r.x < p.x && r.y > p.y){
-				double dX = p.x - r.x;
-				double dY = r.y - p.y;
-				double beta = Math.atan(dY/dX);
-				angle += 3 * Math.PI/2 + beta - alpha;
-			}
-			
-			/*
-			double dX = p.x - HALFWAY_X;
-			double dY = p.y - HALFWAY_Y;
-			double a = (Math.atan2(dY, dX) + Math.PI) / (2*Math.PI) * 360.0;
-			
-			angle += a - b.getAngle(screenCenter);*/
-		}
+		Double angle = 0.0;								// Angle of robot in world space.
+		Point b = beacon.getBeacon().coords();			// Beacon's position.
+		Point r = robot.getPosition();					// Robot's position.
+		// Angle between robot's screen center and tracked beacon.
+		double alpha = Math.toRadians(beacon.getAngle(screenCenter));
 		
-		angle /= beacons.size();
-		return angle;
+		// Determine right quadrant of playground
+		// and calculate angle which center (0,0) is assumed as the robot's position.
+		// First quadrant (top-right)
+		if(r.x < b.x && r.y < b.y){
+			double dX = b.x - r.x;
+			double dY = b.y - r.y;
+			double beta = Math.atan(dY / dX);
+			angle += beta - alpha;
+		}
+		// Second quadrant (top-left)
+		else if(r.x > b.x && r.y < b.y){
+			double dX = r.x - b.x;
+			double dY = b.y - r.y;
+			double beta = Math.atan(dY / dX);
+			angle += Math.PI/2 + beta - alpha;
+		}
+		// Third quadrant (bottom-left)
+		else if(r.x > b.x && r.y > b.y){
+			double dX = r.x - b.x;
+			double dY = r.y - b.y;
+			double beta = Math.atan(dY / dX);
+			angle += Math.PI + beta - alpha;
+		}
+		// Fourth quadrant (bottom-right)
+		else if(r.x < b.x && r.y > b.y){
+			double dX = b.x - r.x;
+			double dY = r.y - b.y;
+			double beta = Math.atan(dY / dX);
+			angle += 3 * Math.PI/2 + beta - alpha;
+		}
+			
+			// double dX = p.x - HALFWAY_X;
+			// double dY = p.y - HALFWAY_Y;
+			// double a = (Math.atan2(dY, dX) + Math.PI) / (2*Math.PI) * 360.0;
+			
+			// angle += a - b.getAngle(screenCenter);
+		
+		return Math.toDegrees(angle);
 	}
 
 	public static Point calcPosition( List<TrackedBeacon> beacons, Mat homography ) {
