@@ -59,7 +59,7 @@ public class RobotEnviroment {
 		return beacons;
 	}
 	
-	public static Double calcAngle( List<TrackedBeacon> beacons, Point screenCenter ) {
+	public static Double calcAngle( List<TrackedBeacon> beacons, Point screenCenter, Robot robot ) {
 		Double angle = null;
 		
 		if ( beacons == null || beacons.size() < 1) 
@@ -68,12 +68,44 @@ public class RobotEnviroment {
 		angle = 0.0;
 		for(TrackedBeacon b : beacons) {
 			Point p = b.getBeacon().coords();
+			Point r = robot.getPosition();
+			double alpha = b.getAngle(screenCenter);
 			
+			// First quadrant
+			if(r.x < p.x && r.y < p.y){
+				double dX = p.x - r.x;
+				double dY = p.y - r.y;
+				double beta = Math.atan(dY/dX);
+				angle += beta - alpha;
+			}
+			// Second quadrant
+			else if(r.x > p.x && r.y < p.y){
+				double dX = r.x - p.x;
+				double dY = p.y - r.y;
+				double beta = Math.atan(dY/dX);
+				angle += Math.PI/2 + beta - alpha;
+			}
+			// Third quadrant
+			else if(r.x > p.x && r.y > p.y){
+				double dX = r.x - p.x;
+				double dY = r.y - p.y;
+				double beta = Math.atan(dY/dX);
+				angle += Math.PI + beta - alpha;
+			}
+			// Fourth quadrant
+			else if(r.x < p.x && r.y > p.y){
+				double dX = p.x - r.x;
+				double dY = r.y - p.y;
+				double beta = Math.atan(dY/dX);
+				angle += 3 * Math.PI/2 + beta - alpha;
+			}
+			
+			/*
 			double dX = p.x - HALFWAY_X;
 			double dY = p.y - HALFWAY_Y;
 			double a = (Math.atan2(dY, dX) + Math.PI) / (2*Math.PI) * 360.0;
 			
-			angle += a - b.getAngle(screenCenter);
+			angle += a - b.getAngle(screenCenter);*/
 		}
 		
 		angle /= beacons.size();
