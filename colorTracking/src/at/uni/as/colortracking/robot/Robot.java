@@ -18,9 +18,9 @@ public class Robot {
 	public static final double ANGLE_TOLERANCE = 10.0;
 	public static final double FIELD_OF_VIEW = 70.0;
 	
-	public static int MOVE_DIST =   	5; //cm
+	public static int MOVE_DIST =   	10; //cm
 	public static long MOVE_TIME =    5000; //ms
-	public static int MOVE_ANGL =   	 5; 
+	public static int MOVE_ANGL =   	10; 
 	public static int VELOCITY_MIN =	15; //cm per second
 	public static int VELOCITY_MAX =	50; //cm per second
 	
@@ -205,7 +205,11 @@ public class Robot {
 		if(v < VELOCITY_MIN) {
 			v = VELOCITY_MIN;
 			t = Math.abs((s * 1000) / v);
-		}
+		} 
+		if(v > VELOCITY_MAX) {
+			v = VELOCITY_MAX;
+			t = Math.abs((s * 1000) / v);
+		} 
 		
 		v = (s < 0) ? -v : v;
 		return new Pair<Integer, Long>(v, t);
