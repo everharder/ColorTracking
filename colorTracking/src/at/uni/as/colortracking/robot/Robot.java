@@ -1,9 +1,5 @@
 package at.uni.as.colortracking.robot;
 
-import java.util.Arrays;
-import java.util.List;
-import java.util.Random;
-
 import jp.ksksue.driver.serial.FTDriver;
 
 import org.opencv.core.Point;
@@ -39,15 +35,16 @@ public class Robot {
 	}
 
 	public void connect() {
-		if ( com.begin( FTDriver.BAUD9600 ) )
-			Log.d( "connect", "connected" );
+		if (com.begin(FTDriver.BAUD9600))
+			Log.d("connect", "connected");
 		else
-			Log.d( "connect", "not connected" );
+			Log.d("connect", "not connected");
 
 	}
 
 	public void disconnect() {
-		if ( com == null || !isConnected() ) return;
+		if (com == null || !isConnected())
+			return;
 
 		com.end();
 	}
@@ -62,10 +59,10 @@ public class Robot {
 		String s = "";
 		int i = 0;
 		int n = 0;
-		while ( i < 3 || n > 0 ) {
+		while (i < 3 || n > 0) {
 			byte[] buffer = new byte[256];
-			n = com.read( buffer );
-			s += new String( buffer, 0, n );
+			n = com.read(buffer);
+			s += new String(buffer, 0, n);
 			i++;
 		}
 		return s;
@@ -74,26 +71,27 @@ public class Robot {
 	private String comReadWrite( byte[] data ) {
 		if ( !isConnected() ) return "NOTCONNECTED";
 
-		if ( com != null ) Log.d( "comNull", "com is not null" );
-		com.write( data );
+		if (com != null)
+			Log.d("comNull", "com is not null");
+		com.write(data);
 		try {
-			Thread.sleep( 100 );
-		} catch ( InterruptedException e ) {
+			Thread.sleep(100);
+		} catch (InterruptedException e) {
 			// ignore
 		}
 		return comRead();
 	}
 
-	private void setLed( byte red, byte blue ) {
-		comReadWrite( new byte[] { 'u', red, blue, '\r', '\n' } );
+	private void setLed(byte red, byte blue) {
+		comReadWrite(new byte[] { 'u', red, blue, '\r', '\n' });
 	}
 
-	private void setVelocity( byte left, byte right ) {
-		comReadWrite( new byte[] { 'i', left, right, '\r', '\n' } );
+	private void setVelocity(byte left, byte right) {
+		comReadWrite(new byte[] { 'i', left, right, '\r', '\n' });
 	}
 
-	private void setBar( byte value ) {
-		comReadWrite( new byte[] { 'o', value, '\r', '\n' } );
+	private void setBar(byte value) {
+		comReadWrite(new byte[] { 'o', value, '\r', '\n' });
 	}
 
 	public void move( int s ) {
@@ -127,6 +125,7 @@ public class Robot {
 		stop();
 	}
 
+
 	private int optimizeTurnAngle(int angle) {
 		while(angle > 180) 
 			angle -= 360;
@@ -137,34 +136,34 @@ public class Robot {
 
 	// stop
 	public void stop() {
-		comReadWrite( new byte[] { 's', '\r', '\n' } );
+		comReadWrite(new byte[] { 's', '\r', '\n' });
 	}
 
 	// fixed position for bar (low)
 	public void barDown() {
-		setBar( (byte) 0 );
+		setBar((byte) 0);
 	}
 
 	// fixed position for bar (high)
 	public void barUp() {
-		setBar( (byte) 255 );
+		setBar((byte) 255);
 	}
 
 	public void ledOn() {
 		// logText(comReadWrite(new byte[] { 'r', '\r', '\n' }));
-		setLed( (byte) 255, (byte) 128 );
+		setLed((byte) 255, (byte) 128);
 	}
 
 	public void ledOff() {
 		// logText(comReadWrite(new byte[] { 'e', '\r', '\n' }));
-		setLed( (byte) 0, (byte) 0 );
+		setLed((byte) 0, (byte) 0);
 	}
 
 	public Point getPosition() {
 		return position;
 	}
 
-	public void setPosition( Point position ) {
+	public void setPosition(Point position) {
 		this.position = position;
 	}
 	
@@ -176,7 +175,6 @@ public class Robot {
 		this.angle = angle;
 	}
 	
-
 	private void updateRobotPosition(int dist, double angle) {
 		if(this.position == null)
 			return;
@@ -211,17 +209,6 @@ public class Robot {
 		v = (s < 0) ? -v : v;
 		return new Pair<Integer, Long>(v, t);
 	}
-
-	public static Command getRandomCommand() {
-		return getRandomCommand( Arrays.asList( Command.values() ) );
-	}
-
-	public static Command getRandomCommand( List<Command> commands ) {
-		Random r = new Random();
-		int randomNumber = r.nextInt( commands.size() );
-
-		return commands.get( randomNumber );
-	}
 	
 	public void doCommand( Command c, int s) {
 		switch ( c ) {
@@ -238,8 +225,8 @@ public class Robot {
 		barDown();
 		ledOn();
 		try {
-			Thread.sleep( 1000 );
-		} catch ( InterruptedException e ) {
+			Thread.sleep(1000);
+		} catch (InterruptedException e) {
 		}
 
 		barUp();
