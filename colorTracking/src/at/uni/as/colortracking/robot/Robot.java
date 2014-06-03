@@ -21,14 +21,15 @@ public class Robot {
 	public static final double COORDS_TOLERANCE = 10.0;
 	public static final double ANGLE_TOLERANCE = 10.0;
 	public static final double FIELD_OF_VIEW = 70.0;
-
-	public static int MOVE_DIST = 5; //cm
-	public static long MOVE_TIME = 5000; //ms
-	public static int MOVE_ANGL = 5; //TODO: measure estimated val.
-	public static int VELOCITY_MIN = 15; //cm per second
-
-	public static Point home = new Point( 10.0, 10.0 );
-
+	
+	public static int MOVE_DIST =   	5; //cm
+	public static long MOVE_TIME =    5000; //ms
+	public static int MOVE_ANGL =   	 5; 
+	public static int VELOCITY_MIN =	15; //cm per second
+	public static int VELOCITY_MAX =	50; //cm per second
+	
+	public static Point home = new Point(10.0, 10.0);
+	
 	private FTDriver com;
 	private Point position = null;
 	private Double angle = null;

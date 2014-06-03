@@ -310,25 +310,27 @@ public class MainActivity extends Activity implements CvCameraViewListener2,
 				robot.setPosition(new Point(RobotEnviroment.HALFWAY_X, RobotEnviroment.HALFWAY_Y));
 			}
 			
-			//BALL CATCHING
-			//===============================================================================
-			if (ballCatcher != null && ballCatcher.isBallCatchingEnabled()) {
-				ballCatcher.catchBall(trackedColors);
-			} else if(ballCatcher != null && ballCatcher.isDone()) {
-				ScreenInfo.getInstance().add( "BALL CATCHED" , ScreenInfo.POS_BOTTOM_LEFT, 2, ScreenInfo.COLOR_BLUE );
+			if(robot.getPosition() != null && robot.getAngle() != null) {
+				//BALL CATCHING
+				//===============================================================================
+				if (ballCatcher != null && ballCatcher.isBallCatchingEnabled()) {
+					ballCatcher.catchBall(trackedColors);
+				} else if(ballCatcher != null && ballCatcher.isDone()) {
+					ScreenInfo.getInstance().add( "BALL CATCHED" , ScreenInfo.POS_BOTTOM_LEFT, 2, ScreenInfo.COLOR_BLUE );
+					
+					//catch next ball
+					ballCatcher = new BallCatcher(robot, environment, CAMERA_W);
+					ballCatcher.setBallCatchingEnabled(true);
+				}
 				
-				//catch next ball
-				ballCatcher = new BallCatcher(robot, environment, CAMERA_W);
-				ballCatcher.setBallCatchingEnabled(true);
-			}
-			
-			//COORD MOVING
-			//===============================================================================
-			if (coordsMover != null && !coordsMover.isEmpty()) {
-				if(robot.getPosition() == null)
-					robot.turn(Robot.MOVE_ANGL);
-				else
-					coordsMover.moveTo();
+				//COORD MOVING
+				//===============================================================================
+				if (coordsMover != null && !coordsMover.isEmpty()) {
+					if(robot.getPosition() == null)
+						robot.turn(Robot.MOVE_ANGL);
+					else
+						coordsMover.moveTo();
+				} 
 			}
 			
 			//ROBOT INFO

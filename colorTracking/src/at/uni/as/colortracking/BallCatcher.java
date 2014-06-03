@@ -122,7 +122,8 @@ public class BallCatcher {
 		
 		CoordsMover c = new CoordsMover(robot);
 		c.moveTo(Robot.home);
-		robot.barUp();
+		if(robot.isAtHome())
+			robot.barUp();
 	}
 
 	public boolean isDone() {
