@@ -98,7 +98,7 @@ public class Robot {
 
 	public void move( int s ) {
 		if(angle != null)
-			updatePosition(s, angle);
+			updateRobotPosition(s, angle);
 		
 		int d = (int) (s * Command.MOVE.getCal());
 		Pair<Integer, Long> moveParams = calcVelocityMoveTime(d);
@@ -113,11 +113,8 @@ public class Robot {
 
 	// turn left
 	public void turn( int angle ) {
-		if(this.angle != null) {
-			this.angle += angle;
-			if(this.angle < 0)
-				this.angle += 360.0;
-		}
+		angle = optimizeTurnAngle(angle);
+		updateRobotAngle(angle);
 		
 		int a = (int) (angle * Command.TURN.getCal() * 0.5);
 		Pair<Integer, Long> moveParams = calcVelocityMoveTime(a);
@@ -128,6 +125,14 @@ public class Robot {
 		} catch ( InterruptedException e ) {
 		}
 		stop();
+	}
+
+	private int optimizeTurnAngle(int angle) {
+		while(angle > 180) 
+			angle -= 360;
+		while(angle < -180)
+			angle += 360;
+		return angle;
 	}
 
 	// stop
@@ -172,20 +177,26 @@ public class Robot {
 	}
 	
 
-	private void updatePosition(int s, double a) {
-		if(a < 0)
-			a += 360.0;
+	private void updateRobotPosition(int dist, double angle) {
+		if(this.position == null)
+			return;
 	
-		double dX = Math.cos(Math.toRadians(a)) * s;
-		double dY = Math.sin(Math.toRadians(a)) * s;
+		double dX = Math.cos(Math.toRadians(angle)) * dist;
+		double dY = Math.sin(Math.toRadians(angle)) * dist;
 		
 		this.position.x += dX;
 		this.position.y += dY;
+	}
+	
+	private void updateRobotAngle(double angle) {
+		if(this.angle == null)
+			return;
 		
-		if(dY < 0)
-			ledOn();
-		else 
-			ledOff();
+		this.angle += angle;
+		if(this.angle > 360)
+			this.angle -= 360;
+		if(this.angle < 0)
+			this.angle += 360;
 	}
 	
 	private Pair<Integer, Long> calcVelocityMoveTime(int s) {

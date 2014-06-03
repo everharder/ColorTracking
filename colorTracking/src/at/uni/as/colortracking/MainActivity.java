@@ -176,8 +176,8 @@ public class MainActivity extends Activity implements CvCameraViewListener2,
 				
 				Toast.makeText(this, "catch object enabled",Toast.LENGTH_SHORT).show();
 
-				if (coordsMover != null && coordsMover.isMoveToCoordsEnabled()) {
-					coordsMover.setMoveToCoordsEnabled(false);
+				if (coordsMover != null && !coordsMover.isEmpty()) {
+					coordsMover = null;
 					Toast.makeText(getApplicationContext(),"MoveTo mode disabled!", Toast.LENGTH_SHORT).show();
 				}
 			}
@@ -295,6 +295,7 @@ public class MainActivity extends Activity implements CvCameraViewListener2,
 				/*Double angle = RobotEnviroment.calcAngle(beacons, new Point(CAMERA_W / 2, CAMERA_H / 2));
 				if(angle != null)
 					robot.setAngle(angle);*/
+				//TODO: replace with angle calculation
 				robot.setAngle(90.0);
 			}
 			if(environment.getHomography() != null && robot.getPosition() == null) {
@@ -313,8 +314,11 @@ public class MainActivity extends Activity implements CvCameraViewListener2,
 			
 			//COORD MOVING
 			//===============================================================================
-			if (coordsMover != null && coordsMover.isMoveToCoordsEnabled()) {				
-				coordsMover.moveToCoords();
+			if (coordsMover != null && !coordsMover.isEmpty()) {
+				if(robot.getPosition() == null)
+					robot.turn(Robot.MOVE_ANGL);
+				else
+					coordsMover.moveTo();
 			}
 			
 			//ROBOT INFO
@@ -343,8 +347,8 @@ public class MainActivity extends Activity implements CvCameraViewListener2,
 				ScreenInfo.getInstance().add( screenInfo.toString(), ScreenInfo.POS_TOP_LEFT, ScreenInfo.COLOR_WHITE );
 			}
 			
-			
-			
+			//BEACON INFO
+			//===============================================================================
 			ScreenInfo.getInstance().add( "Beacons: ", ScreenInfo.POS_TOP_LEFT, ScreenInfo.COLOR_WHITE );
 			for(TrackedBeacon b : beacons) {
 				StringBuilder screenInfo = new StringBuilder();
@@ -384,7 +388,7 @@ public class MainActivity extends Activity implements CvCameraViewListener2,
 			String value = input.getText().toString();
 			if (value != null && value.length() > 0 && robot != null) {
 				
-				coordsMover.setTargetCoords(RobotEnviroment.parseCoordsList(value)); 
+				coordsMover.setTarget(RobotEnviroment.parseCoordsList(value)); 
 			}
 		}
 	}
