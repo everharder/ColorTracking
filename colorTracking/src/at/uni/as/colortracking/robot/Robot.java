@@ -20,8 +20,9 @@ public class Robot {
 	
 	public static int MOVE_DIST =   	5; //cm
 	public static long MOVE_TIME =    5000; //ms
-	public static int MOVE_ANGL =   	 5; //TODO: measure estimated val.
+	public static int MOVE_ANGL =   	 5; 
 	public static int VELOCITY_MIN =	15; //cm per second
+	public static int VELOCITY_MAX =	50; //cm per second
 	
 	public static Point home = new Point(10.0, 10.0);
 	
