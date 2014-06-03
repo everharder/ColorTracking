@@ -229,8 +229,8 @@ public class MainActivity extends Activity implements CvCameraViewListener2,
 			Toast.makeText(getApplicationContext(),
 					"unable to connect to robot!", Toast.LENGTH_SHORT).show();
 		else {
-			robot.move(10);
-			robot.move(-10);
+			robot.move(10, false);
+			robot.move(-10, false);
 			robot.barUp();
 		}
 	}

@@ -107,7 +107,7 @@ public class BallCatcher {
 				ScreenInfo.getInstance().add( "READY TO CATCH...", ScreenInfo.POS_BOTTOM_RIGHT, 4, ScreenInfo.COLOR_BLUE );
 				readyToCatch = true;
 			} else {
-				robot.move( (int) (ball.getDistance() - MIN_DISTANCE) );
+				robot.move( (int) (ball.getDistance() - MIN_DISTANCE), true );
 			}
 		} else {
 			ScreenInfo.getInstance().add( "BALL LOST...", ScreenInfo.POS_BOTTOM_RIGHT, 4, ScreenInfo.COLOR_RED );

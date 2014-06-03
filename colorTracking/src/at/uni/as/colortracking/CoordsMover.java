@@ -23,11 +23,11 @@ public class CoordsMover {
 		//turn to 0°
 		robot.turn((int) -robot.getAngle());
 		//move to x
-		robot.move((int) (target.x - robot.getPosition().x));
+		robot.move((int) (target.x - robot.getPosition().x), true);
 		//turn to 90°
 		robot.turn((int) 90.0);
 		//move to y
-		robot.move((int) (target.y - robot.getPosition().y));
+		robot.move((int) (target.y - robot.getPosition().y), true);
 	}
 	
 	public void moveTo() {
