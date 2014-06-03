@@ -119,12 +119,10 @@ public class BallCatcher {
 	private void grabBall() {
 		done = true;
 		robot.barDown();
-		robot.ledOn();
-		try {
-			Thread.sleep( 1000 );
-		} catch ( InterruptedException e ) {
-		}
-		robot.ledOff();
+		
+		CoordsMover c = new CoordsMover(robot);
+		c.moveTo(Robot.home);
+		robot.barUp();
 	}
 
 	public boolean isDone() {
