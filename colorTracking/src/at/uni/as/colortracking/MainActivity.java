@@ -299,9 +299,10 @@ public class MainActivity extends Activity implements CvCameraViewListener2,
 				robot.setAngle(90.0);
 			}
 			if(environment.getHomography() != null && robot.getPosition() == null) {
-				Point position = RobotEnviroment.calcPosition(beacons, environment.getHomography());
+				/*Point position = RobotEnviroment.calcPosition(beacons, environment.getHomography());
 				if(position != null)
-					robot.setPosition(position);
+					robot.setPosition(position);*/
+				robot.setPosition(new Point(RobotEnviroment.HALFWAY_X, RobotEnviroment.HALFWAY_Y));
 			}
 			
 			//BALL CATCHING

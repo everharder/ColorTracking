@@ -105,12 +105,6 @@ public class RobotEnviroment {
 			double beta = Math.atan(dY / dX);
 			angle += 3 * Math.PI/2 + beta - alpha;
 		}
-			
-			// double dX = p.x - HALFWAY_X;
-			// double dY = p.y - HALFWAY_Y;
-			// double a = (Math.atan2(dY, dX) + Math.PI) / (2*Math.PI) * 360.0;
-			
-			// angle += a - b.getAngle(screenCenter);
 		
 		return Math.toDegrees(angle);
 	}
