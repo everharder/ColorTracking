@@ -25,27 +25,28 @@ public class BallCatcher {
 	private boolean done = false;
 	
 	private float imageHeight;
+	private RobotEnviroment environment;
 	
 	private boolean ballCatchingEnabled;
 	
-	//private static final int MOVE_TIME = 400;
-	private static final int MOVE_STEP_SIZE = 20;
-	//private static final int MOVE_TIME_CENTERING = 100;
 	private static final int CAMERA_X_OFFSET = -5; // cam is on the left side
 	private static final double MIN_DISTANCE = 15; // cm
 	private static final int MIDDLE_TOLERANCE = 50;
 
-	public BallCatcher(Robot robot, float w, float h) {
+	public BallCatcher(Robot robot, RobotEnviroment environment, float h) {
 		this.robot = robot;
 		this.imageHeight = h;
+		this.environment = environment;
 	}
 
-	public void catchBall( RobotEnviroment environment, Map<Color, List<TrackedColor>> trackedColors ) {
+	public void catchBall( Map<Color, List<TrackedColor>> trackedColors ) {
+		if ( environment == null || environment.getHomography() == null)
+			return;
+		
 		ball = RobotEnviroment.findBall( trackedColors );
 
 		if ( ball != null ) {
-			if ( environment.getHomography() != null ) 
-				ball.calcDistance( environment.getHomography() );
+			ball.calcDistance( environment.getHomography() );
 			ScreenInfo.getInstance().add( "BALL IN VIEW", ScreenInfo.POS_BOTTOM_RIGHT, 4, ScreenInfo.COLOR_GREEN );
 			initalBallFound = true;
 			ballInView = true;
@@ -65,34 +66,33 @@ public class BallCatcher {
 				grabBall();
 			}
 		} else {
-			robot.turn( MOVE_STEP_SIZE ); // turn left until we see a ball
+			robot.turn( Robot.MOVE_ANGL ); // turn left until we see a ball
 		}
 	}
 
 	private void alignToBall() {
 		ScreenInfo.getInstance().add( "CENTERING...", ScreenInfo.POS_BOTTOM_RIGHT, 4, ScreenInfo.COLOR_BLUE );
 		
-		
 		float imgWidthMin = (imageHeight / 2) - MIDDLE_TOLERANCE + CAMERA_X_OFFSET;
 		float imgWidthMax = (imageHeight / 2) + MIDDLE_TOLERANCE + CAMERA_X_OFFSET;
 		
 		if( ballInView) {
 			if(ball.getBallColor().getBottom().x < imgWidthMin ) {
-				robot.turn( MOVE_STEP_SIZE );
+				robot.turn( Robot.MOVE_ANGL );
 			} else if (ball.getBallColor().getBottom().x > imgWidthMax ) {
-				robot.turn( -MOVE_STEP_SIZE );
+				robot.turn( -Robot.MOVE_ANGL );
 			} else {
 				centered = true;
 				ScreenInfo.getInstance().add( "CENTERED!", ScreenInfo.POS_BOTTOM_RIGHT, 4, ScreenInfo.COLOR_BLUE );
 			}
 		} else {
-			robot.turn( MOVE_STEP_SIZE ); // turn left until we see a ball again
+			robot.turn( Robot.MOVE_ANGL ); // turn left until we see a ball again
 		}
 		
 	}
 
 	private void moveToBall() {
-		if ( ballInView ) {
+		if ( ballInView && ball != null) {
 			double centerOffset = ((imageHeight / 2) + CAMERA_X_OFFSET) - ball.getBallColor().getBottom().x;
 			if(Math.abs(centerOffset) > MIDDLE_TOLERANCE) {
 				centered = false;
@@ -107,7 +107,7 @@ public class BallCatcher {
 				ScreenInfo.getInstance().add( "READY TO CATCH...", ScreenInfo.POS_BOTTOM_RIGHT, 4, ScreenInfo.COLOR_BLUE );
 				readyToCatch = true;
 			} else {
-				robot.move( MOVE_STEP_SIZE );
+				robot.move( (int) (ball.getDistance() - MIN_DISTANCE) );
 			}
 		} else {
 			ScreenInfo.getInstance().add( "BALL LOST...", ScreenInfo.POS_BOTTOM_RIGHT, 4, ScreenInfo.COLOR_RED );

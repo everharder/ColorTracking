@@ -171,7 +171,7 @@ public class MainActivity extends Activity implements CvCameraViewListener2,
 
 				Toast.makeText(this, "catch object disabled",Toast.LENGTH_SHORT).show();
 			} else {
-				ballCatcher = new BallCatcher(robot, CAMERA_W, CAMERA_H);
+				ballCatcher = new BallCatcher(robot, environment , CAMERA_H);
 				ballCatcher.setBallCatchingEnabled(true);
 				
 				Toast.makeText(this, "catch object enabled",Toast.LENGTH_SHORT).show();
@@ -308,7 +308,7 @@ public class MainActivity extends Activity implements CvCameraViewListener2,
 			//BALL CATCHING
 			//===============================================================================
 			if (ballCatcher != null && ballCatcher.isBallCatchingEnabled()) {
-				ballCatcher.catchBall(environment, trackedColors);
+				ballCatcher.catchBall(trackedColors);
 			} else if(ballCatcher != null && ballCatcher.isDone()) {
 				ScreenInfo.getInstance().add( "BALL CATCHED" , ScreenInfo.POS_BOTTOM_LEFT, 2, ScreenInfo.COLOR_BLUE );
 			}
