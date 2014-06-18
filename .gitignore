@@ -3,3 +3,4 @@ colorTracking/bin/*
 colorTracking/gen/
 colorTracking/project.properties
 *.cls
+*.bib
