@@ -1,0 +1,88 @@
+\documentclass[703031]{iisreport}
+
+\title{Report}
+\author{Daniel Eberharter\\ Claudio Canella\\ Stefan Haselwanter\\ Christoph Haas}
+
+\begin{document}
+\maketitle
+
+\section{Abstract}
+
+
+\section{Color Detection - Eberharter}
+\subsection{Motivation}
+The robot is placed into an enviroment, which is bordered by a total of eight beacons. These beacons consists of a combination of two colored strips (here white, blue, red, and yellow) placed horizontal around the beacon. Each of the beacons has a unique combination of these colors (swapping top and bottom color results in a different combination).
+For localizing itself the robot needs to find at least two of these beacons - therefore it has to detect and interpret the colors.
+\subsection{Approach}
+For color detection we convert the RGBA-image of the phone camera to HSV\footnote{Hue - Saturation - Value} color space. HSV has the big advantage compared to RGB color space, that the mapping of te colors is linear. This behaviour allows to detect a single color by adding tolerances $t$ to the HSV-values \footnote{In the following $c_{hue}$ is the Hue of HSV-color $c$. The same hold respective for $c_{sat}$ as Saturation, and $c_{val}$ as Value} $c$, and check if the pixel color $p$ lies within the bounds of 
+
+\[c_{hue} - t \le p_{hue} \le c_{hue} + t\]
+\[c_{sat} - t \le p_{sat} \le c_{sat} + t\]
+\[c_{val} - t \le p_{val} \le c_{val} + t\]
+
+After the \emph{inRange} function call\cite{opencv_man_arrays} the result image will be a binary matrix with all pixels within the color range being mapped to 1, and all other to 0. The OpenCV function \emph{fincContours}\cite{opencv_man_struct_analysis} in combination with \emph{boundingRect}\cite{opencv_man_struct_analysis} returns a rectangle object for each contour\footnote{def. contour: the outline of a figure or body; the edge or line that defines or bounds a shape or object\cite{dict_contour}} in the image. Additionally we have to set a minimum size of these rectangles and discard the smaller ones, because really small rectangles tend to be irrelevant objects (that just happen to match the beacon colors) or errors in detection.
+The only information relevant for storing are these rectangles and the associated colors. 
+
+\subsection{Advantages of using InRange-Colormapping}
+The biggest advantage by far is the improved frame rate. When using Histogram-based colordetection we encountered severe latency problems (leading to a maximum frame rate of $\frac{1}{4}$ fps), which in the end made our robot inoperable. This malfunction arised with the usage of the OpenCV backprojection functions, which basically took the targets color-probability and created a binary image out of the camera frame, with only displaying objects that would map these probability.
+Additionally \emph{inRange} based colordetection is more resilent against enviromental influx, such as glare or the JavaCamera automatic white-balancing (which turned out the be very obnoxious).
+
+\subsection{Additional Features}
+For each of the beacon relevant colors, default HSV-color values are hardcoded. In perfect conditions (no glare, no shadows, etc.) these default values hold very well, unfortunatly the requirements were mostly not met in the lab. Therefore additional color calibration was implemented, to match the needed color values to real-world conditions and to avoid misenterpriation of colors.
+
+\section{Beacon Detection - Eberharter, Haselwanter}
+\subsection{Motivation}
+The detection of beacons is vital for the used localization algorithm, therefore it's necessary to determine if a object is a beacon or not with a high confidence. 
+\subsection{Approach}
+First off we define the set of beacons we use as constants, with the contained information being the upper- and lower-color and the respective coordinates on the testfield. To conclude that two rectangles (returned by the colortracking algorithm) belong to a beacon we have to check wether these rectangles are in near proximity\footnote{Meaning that the lower edge of the upper rectangle is within the tolerance bounds of the upper edge of the lower rectangle}, with keeping in mind that the order of upper, and lower color is not interchangable. 
+As there is the possibility that the bounding rectangles do not touch each other based on the fact that the lighting is semi-optimal\footnote{With optimal lighting being a lightsouce, that hits the object with the same light-intensity from each direction and therefore casts no shadow.}, we have added a tolerance parameter which loosens the bounds between the two rectangles.
+
+\subsection{Problems}
+	\begin{description}
+		\item [Problem 1:] The problem we had with beacon detection was that we detected many colors in the background that interfere with our beacons. That is why a bounding color rectangle must have at least an area of 1000, otherwise they are discarded.
+		\item [Problem 2:] White also proved to be an unfortunate color for beacon detection as walls tend to be white and the criteria of a minimum area of 1000 also is true for them. That is why we decided to discard white as a valid beacon color. This brings the downside that we can no longer use the beacons at position (0,75) and (150,75), but also reduces the probability of wrongly detected beacons and therefore increases our precision.
+	\end{description}
+
+
+\section{Self-Localization - Canella, Haselwanter}
+\subsection{Approach}
+For self-localization we use 2 beacons and use simple trigonometry to calculate the position. We use trigonometry (law of cosine, law of sine and Pythagorean theorem) as it is easier to implement and understand as circle intersection, especially as we know the distance to the beacons and the distance between them.
+After we calculate our distance from the left beacon (x-axis) and from the top (y-axis) we have to differentiate different cases depending on the detected beacons to get the correct position.
+\subsection{Problems}
+At first we tried to implement self-localization using circle intersection, but somehow ran into problems as the function always returned either NaN or $\pm infinity$. So instead of wasting too much time trying to fix it we decided to switch to trigonometry which worked almost right away and is also a little bit faster.
+\section{Motion control}
+
+\section{Caging a ball - Christoph Haas}
+
+\section{Usage of program}
+The usage of the program depends on what the robot should to, but some steps are the same. Therefore we first discuss the steps that have to be done for all actions then the steps for each case.
+
+Basic Steps:
+	\begin{enumerate}
+		\item Calc Homography: if this takes quite some time, then the homography could not be calculated, so please try again
+		\item Calibrate Colors: name of color to be selected is displayed on the screen, aim at correct color and touch the screen.
+		\item Calibrate Robot: put the green ball in front of the robot(10-15 cm) so that it is centered on the screen. The robot will then perform turns and forward-backward movement to calculate a movement- and turn-factor for the robots servos.
+	\end{enumerate}
+	
+Move to coordinates steps:
+	\begin{enumerate}
+		\item Move to...: specify coordinates in the format [x:y]
+		\item Toggle Tracking
+	\end{enumerate}
+
+Cagging a ball steps:
+	\begin{enumerate}
+		\item Toggle catch object
+	\end{enumerate}
+
+\small
+\begin{thebibliography}{9}
+	\bibitem{opencv_man_arrays}
+		http://docs.opencv.org/modules/core/doc/operations\_on\_arrays.html	
+	\bibitem{opencv_man_struct_analysis}
+		http://docs.opencv.org/modules/imgproc/doc/structural\_analysis\_and\_shape\_descriptors.html
+	\bibitem{dict_contour}
+		http://dictionary.reference.com/browse/contour
+\end{thebibliography}
+
+\end{document}
