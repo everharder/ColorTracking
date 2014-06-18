@@ -17,7 +17,10 @@ This short report recapitulates the working and programming with the robot in th
 	\item Obstacle avoidance (optional)
 \end{enumerate}
 
-\section{Color Detection - Eberharter}
+\section{Color Detection}
+Implementation mainly done by Daniel Eberharter.\\
+Further development through Stefan Haselwanter and Claudio Canella.
+
 \subsection{Motivation}
 The robot is placed into an enviroment, which is bordered by a total of eight beacons. These beacons consists of a combination of two colored strips (here \emph{white}, \emph{blue}, \emph{red}, and \emph{yellow}) placed horizontal around the beacon. Each of the beacons has a unique combination of these colors (swapping top and bottom color results in a different combination).
 For localizing itself the robot needs to find at least two of these beacons - therefore it has to detect and interpret the colors.
@@ -32,30 +35,37 @@ After the \emph{inRange} function call\cite{opencv_man_arrays} the result image 
 The only relevant information for storing are these rectangles and the associated colors. 
 
 \subsection{Advantages of using \emph{inRange}-Color-Mapping}
-The biggest advantage by far is the improved frame rate. When using Histogram-based color detection we encountered severe latency problems (leading to a maximum frame rate of $\frac{1}{4}$ fps), which made our robot inoperable. This malfunction arised with the usage of the OpenCV backprojection functions, which basically took the target's color-probability and created a binary image out of the camera frame with only displaying objects that would map this probability.
+The biggest advantage by far is the improved frame rate. When using Histogram-based color detection we encountered severe latency problems (leading to a maximum frame rate of $\frac{1}{4}$ fps), which made our robot inoperable. This malfunction arises with the usage of the OpenCV backprojection functions, which basically takes the target's color-probability and creates a binary image out of the camera frame with only displaying objects that would map this probability.
 
 Additionally \emph{inRange} based color detection is more resilent against environmental influence such as glare or the JavaCamera's automatic white-balancing (which turned out to be very obnoxious).
 
 \subsection{Additional Features}
 For each of the beacon relevant colors, default HSV-color values are hard coded. In perfect conditions (no glare, no shadows, etc.) these default values hold very well, unfortunately the requirements were mostly not met in the lab. Therefore additional color calibration was implemented to match the needed color values to real-world conditions and to avoid misinterpretation of colors.
 
-\section{Beacon Detection - Eberharter, Haselwanter}
+
+\section{Beacon Detection}
+Implementation mainly done by Daniel Eberharter. \\
+Further development through Stefan Haselwanter and Claudio Canella.
+
 \subsection{Motivation}
 The detection of beacons is vital for the used localization algorithm (see chapter \ref{sec:localization}), therefore it is necessary to determine if a object is a beacon or not with a high confidence.
 
 \subsection{Approach}
 First of we define a set of beacons we use as constants, with the contained information being the upper- and lower-color and the respective coordinates on the testfield. To conclude that two rectangles (returned by the colortracking algorithm) belong to a beacon we have to check wether these rectangles are in near proximity\footnote{Meaning that the lower edge of the upper rectangle is within the tolerance bounds of the upper edge of the lower rectangle}, with keeping in mind that the order of upper and lower color is not interchangable. 
-As there is the possibility that the bounding rectangles do not touch each other based on the fact that the lighting is semi-optimal\footnote{With optimal lighting being a lightsouce, that hits the object with the same light-intensity from each direction and therefore casts no shadow.}, we have added a tolerance parameter which loosens the bounds between the two rectangles.
+As there is the possibility that the bounding rectangles do not touch each other based on the fact that the lighting is semi-optimal\footnote{With optimal lighting being a lightsouce, that hits the object with the same light intensity from each direction and therefore casts no shadow.}, we have added a tolerance parameter which loosens the bounds between the two rectangles.
 
 \subsection{Problems}
-	\begin{description}
-		\item [Problem 1:] The problem we had with beacon detection was that we detected many colors in the background that interfere with our beacons. That is why a bounding color rectangle must have at least an area of 1000, otherwise they are discarded.
-		\item [Problem 2:] White also proved to be an unfortunate color for beacon detection as walls tend to be white and the criteria of a minimum area of 1000 also is true for them. That is why we decided to discard white as a valid beacon color. This brings the disadvantage that we can no longer use the beacons at position (0,75) and (150,75), but also reduces the probability of wrongly detected beacons and therefore increases our precision.
-	\end{description}
+	\begin{itemize}
+		\item The problem we had with beacon detection was that we detected many colors in the background that interfere with our beacons. This was partially solved by thresholding the rectangle size.
+		\item White proved to be an unfortunate color for beacon detection, as walls tend to be white and they can't be ignored by size thresholding. That is why we decided to discard white as a valid beacon color. Unfortunately this means that we can no longer use the beacons at position ($X_{min}$,$\frac{Y_{max}}{2}$) and ($X_{max}$,$\frac{Y_{max}}{2}$), but also reduces the probability of wrongly detected beacons and therefore increases the overall precision.
+	\end{itemize}
 
 
 \section{Self-Localization \& Orientation -\\ Canella, Haselwanter}
 \label{sec:localization}
+Implementation mainly done by Claudio Canella and Stefan Haselwanter. \\
+Further development through Daniel Eberharter and Christoph Haas.
+
 \subsection{Motivation}
 The self-localization and orientation of the robot is quite important because the robot has to determine where it is in the world space to apply further movements or other commands (see chapter \ref{sec:motion} and \ref{sec:caging}).
 
@@ -80,6 +90,8 @@ At first we tried to implement self-localization using circle intersection, but 
 
 \section{Caging a ball - Christoph Haas}
 \label{sec:caging}
+Implementation solely done by Christoph Haas.
+
 \subsection{Motivation}
 
 \subsection{Approach}
@@ -100,7 +112,7 @@ The usage of the program depends on what the robot should do, but some steps are
 		\item \textbf{Move to...:} Specify coordinates in the format [x:y]
 		\item \textbf{Toggle Tracking}\\
 	\end{enumerate}
-\emph{Cagging a ball steps}
+\emph{Caging a ball steps}
 	\begin{enumerate}
 		\item \textbf{Toggle catch object}
 	\end{enumerate}
