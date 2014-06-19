@@ -52,7 +52,7 @@ The detection of beacons is vital for the used localization algorithm (see chapt
 
 \subsection{Approach}
 First of we define a set of beacons we use as constants, with the contained information being the upper- and lower-color and the respective coordinates on the test-field. To conclude that two rectangles (returned by the color-tracking algorithm) belong to a beacon we have to check whether these rectangles are in near proximity\footnote{Meaning that the lower edge of the upper rectangle is within the tolerance bounds of the upper edge of the lower rectangle}, with keeping in mind that the order of upper and lower color is not interchangeable. 
-As there is the possibility that the bounding rectangles do not touch each other based on the fact that the lighting is semi-optimal\footnote{With optimal lighting being a lightsouce, that hits the object with the same light intensity from each direction and therefore casts no shadow.}, we have added a tolerance parameter which loosens the bounds between the two rectangles.
+As there is the possibility that the bounding rectangles do not touch each other based on the fact that the lighting is semi-optimal\footnote{With optimal lighting being a light source that hits the object with the same light intensity from each direction and therefore casts no shadow.}, we have added a tolerance parameter which loosens the bounds between the two rectangles.
 
 \subsection{Problems}
 	\begin{itemize}
@@ -61,7 +61,7 @@ As there is the possibility that the bounding rectangles do not touch each other
 	\end{itemize}
 
 
-\section{Self-Localization \& Orientation -\\ Canella, Haselwanter}
+\section{Self-Localization \& Orientation}
 \label{sec:localization}
 Implementation mainly done by Claudio Canella and Stefan Haselwanter. \\
 Further development through Daniel Eberharter and Christoph Haas.
@@ -91,18 +91,18 @@ actually the movement speed of the robot (see \ref{subsec:motion_problems}). Wit
 The following advantage of this approach is that, if the robot has localized itself once, we can calculate the robot coordinate change from each movement. Therefore the robot would need only localize a single time and would be independent from beacons further on.
 
 \subsection{Approach - Calibration}
-The calibration was simply implemented by comparing expected movements to actual movements regarding fixed distances, and further on calculating a correction factor for each movement\footnote{move forward/backward, turn left/right}. For this task the robot needs a reference object (in our case a green ball). \\
-We measure the distance to the reference object, tell the robot the move a certain distance to/from (or respectively turn left/right) the it and measure the distance again. In consequence
+The calibration was simply implemented by comparing expected movements to actual movements regarding fixed distances and further on calculating a correction factor for each movement\footnote{move forward/backward, turn left/right}. For this task the robot needs a reference object (in our case a green ball). \\
+We measure the distance to the reference object, tell the robot to move a certain distance to/from (or respectively turn left/right) it and measure the distance again. In consequence
 we get the correction factors $c_i$ as follows, where $x_{expected}$ is the expected distance/angle and $x_{actual}$ is the measured distance/angle after movement:
 
 	\[c_i = \frac{x_{expected}}{x_{actual}}\]
 
-This factor is multiplied with the velocity parameter for each movement, to correct the movement behaviour. The precision can be further increased by repeating this procedure $N$ times and calculating the mean of the results.
+This factor is multiplied with the velocity parameter for each movement to correct the movement behaviour. The precision can be further increased by repeating this procedure $N$ times and calculating the mean of the results.
 
 \subsection{Problems}
 \label{subsec:motion_problems}
 	\begin{itemize}
-		\item 	The first and major problem we encountered was the each robot had different tolerances concerning movement. This was particularly unfortunate when the two servos on 
+		\item 	The first and major problem we encountered was that each robot had different tolerances concerning movement. This was particularly unfortunate when the two servos on 
 			the same robot ran with different speed. Although this could be fixed to a certain degree through robot calibration, it maintained to be an issue.
 		\item	One big flaw with the robot controlling software was the parameter of the \emph{setVelocity} function. The actual speed the robot moved with was unpredictable from
 			this parameter\footnote{The best approach for the velocity parameter unit is to assume it as $\frac{cm}{s}$ and pray.} - a really big improvement to the robot would be the
@@ -111,7 +111,7 @@ This factor is multiplied with the velocity parameter for each movement, to corr
 	\end{itemize}
 
 
-\section{Caging a ball - Christoph Haas}
+\section{Caging a ball}
 \label{sec:caging}
 Implementation solely done by Christoph Haas.
 
