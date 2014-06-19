@@ -22,7 +22,7 @@ Implementation mainly done by Daniel Eberharter.\\
 Further development through Stefan Haselwanter and Claudio Canella.
 
 \subsection{Motivation}
-The robot is placed into an enviroment, which is bordered by a total of eight beacons. These beacons consists of a combination of two colored strips (here \emph{white}, \emph{blue}, \emph{red}, and \emph{yellow}) placed horizontal around the beacon. Each of the beacons has a unique combination of these colors (swapping top and bottom color results in a different combination).
+The robot is placed into an environment, which is bordered by a total of eight beacons. These beacons consists of a combination of two colored strips (here \emph{white}, \emph{blue}, \emph{red}, and \emph{yellow}) placed horizontal around the beacon. Each of the beacons has a unique combination of these colors (swapping top and bottom color results in a different combination).
 For localizing itself the robot needs to find at least two of these beacons - therefore it has to detect and interpret the colors.
 
 \subsection{Approach}
@@ -37,7 +37,7 @@ The only relevant information for storing are these rectangles and the associate
 \subsection{Advantages of using \emph{inRange}-Color-Mapping}
 The biggest advantage by far is the improved frame rate. When using Histogram-based color detection we encountered severe latency problems (leading to a maximum frame rate of $\frac{1}{4}$ fps), which made our robot inoperable. This malfunction arises with the usage of the OpenCV backprojection functions, which basically takes the target's color-probability and creates a binary image out of the camera frame with only displaying objects that would map this probability.
 
-Additionally \emph{inRange} based color detection is more resilent against environmental influence such as glare or the JavaCamera's automatic white-balancing (which turned out to be very obnoxious).
+Additionally \emph{inRange} based color detection is more resilient against environmental influence such as glare or the JavaCamera's automatic white-balancing (which turned out to be very obnoxious).
 
 \subsection{Additional Features}
 For each of the beacon relevant colors, default HSV-color values are hard coded. In perfect conditions (no glare, no shadows, etc.) these default values hold very well, unfortunately the requirements were mostly not met in the lab. Therefore additional color calibration was implemented to match the needed color values to real-world conditions and to avoid misinterpretation of colors.
@@ -51,7 +51,7 @@ Further development through Stefan Haselwanter and Claudio Canella.
 The detection of beacons is vital for the used localization algorithm (see chapter \ref{sec:localization}), therefore it is necessary to determine if a object is a beacon or not with a high confidence.
 
 \subsection{Approach}
-First of we define a set of beacons we use as constants, with the contained information being the upper- and lower-color and the respective coordinates on the testfield. To conclude that two rectangles (returned by the colortracking algorithm) belong to a beacon we have to check wether these rectangles are in near proximity\footnote{Meaning that the lower edge of the upper rectangle is within the tolerance bounds of the upper edge of the lower rectangle}, with keeping in mind that the order of upper and lower color is not interchangable. 
+First of we define a set of beacons we use as constants, with the contained information being the upper- and lower-color and the respective coordinates on the test-field. To conclude that two rectangles (returned by the color-tracking algorithm) belong to a beacon we have to check whether these rectangles are in near proximity\footnote{Meaning that the lower edge of the upper rectangle is within the tolerance bounds of the upper edge of the lower rectangle}, with keeping in mind that the order of upper and lower color is not interchangeable. 
 As there is the possibility that the bounding rectangles do not touch each other based on the fact that the lighting is semi-optimal\footnote{With optimal lighting being a lightsouce, that hits the object with the same light intensity from each direction and therefore casts no shadow.}, we have added a tolerance parameter which loosens the bounds between the two rectangles.
 
 \subsection{Problems}
@@ -81,11 +81,34 @@ At first we tried to implement self-localization using circle intersection, but 
 
 \section{Motion control}
 \label{sec:motion}
-\subsection{Motivation}
+Implementation mainly done by Daniel Eberharter.\\
+Further development through Claudio Canella and Stefan Haselwanter.
+The code contains fragments of Alexander Hirsch's Robot WASD-Application.
 
-\subsection{Approach}
+\subsection{Approach - Movement}
+For robot movement we decided to implement calibration for the servo-motors, with the advantage that the parameter we give to the \emph{setVelocity}\footnote{From Alexander Hirsch.} is 
+actually the movement speed of the robot (see \ref{subsec:motion_problems}). With the \emph{setVelocity} function being fixed we could reliably command the robot to move a certain distance or turn a certain angle.
+The following advantage of this approach is that, if the robot has localized itself once, we can calculate the robot coordinate change from each movement. Therefore the robot would need only localize a single time and would be independent from beacons further on.
+
+\subsection{Approach - Calibration}
+The calibration was simply implemented by comparing expected movements to actual movements regarding fixed distances, and further on calculating a correction factor for each movement\footnote{move forward/backward, turn left/right}. For this task the robot needs a reference object (in our case a green ball). \\
+We measure the distance to the reference object, tell the robot the move a certain distance to/from (or respectively turn left/right) the it and measure the distance again. In consequence
+we get the correction factors $c_i$ as follows, where $x_{expected}$ is the expected distance/angle and $x_{actual}$ is the measured distance/angle after movement:
+
+	\[c_i = \frac{x_{expected}}{x_{actual}}\]
+
+This factor is multiplied with the velocity parameter for each movement, to correct the movement behaviour. The precision can be further increased by repeating this procedure $N$ times and calculating the mean of the results.
 
 \subsection{Problems}
+\label{subsec:motion_problems}
+	\begin{itemize}
+		\item 	The first and major problem we encountered was the each robot had different tolerances concerning movement. This was particularly unfortunate when the two servos on 
+			the same robot ran with different speed. Although this could be fixed to a certain degree through robot calibration, it maintained to be an issue.
+		\item	One big flaw with the robot controlling software was the parameter of the \emph{setVelocity} function. The actual speed the robot moved with was unpredictable from
+			this parameter\footnote{The best approach for the velocity parameter unit is to assume it as $\frac{cm}{s}$ and pray.} - a really big improvement to the robot would be the
+			addition of a regulation cycle, to assure the value you set is the actual velocity of the robot.
+		\item 	The servos of most robots don't move beneath a velocity of 15\footnote{Again the unit is unknown...}, probably an exception should be thrown when the associated 			parameter is lower than this threshold.
+	\end{itemize}
 
 
 \section{Caging a ball - Christoph Haas}
