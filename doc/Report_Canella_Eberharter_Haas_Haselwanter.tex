@@ -7,15 +7,15 @@
 \maketitle
 
 \section{Abstract}
-This short report recapitulates the working and programming with the robot in the lab \emph{Introduction to Autonomous and Intelligent Systems} in summer semester 2014. Each chapter describes one of the six key aspects of this project by means of motivation, approach and occurred problems. This key aspects are
+This short report recapitulates the working and programming with the robot in the lab \emph{Introduction to Autonomous and Intelligent Systems} in summer semester 2014. Each section describes one of the five key aspects of this project by means of motivation, approach and occurred problems. This key aspects are
 \begin{enumerate}
 	\item Color detection
 	\item Beacon detection
 	\item Self-localization and orientation
 	\item Motion control
-	\item Caging a Ball
-	\item Obstacle avoidance (optional)
+	\item Caging a Ball\\
 \end{enumerate}
+The usage of the program is discussed at the end in section \ref{sec:usage}.
 
 \section{Color Detection}
 Implementation mainly done by Daniel Eberharter.\\
@@ -31,8 +31,10 @@ For color detection we convert the RGBA-image of the phone camera to HSV\footnot
 \[c_{hue} - t \le p_{hue} \le c_{hue} + t\]
 \[c_{sat} - t \le p_{sat} \le c_{sat} + t\]
 \[c_{val} - t \le p_{val} \le c_{val} + t\]\\
-After the \emph{inRange} function call\cite{opencv_man_arrays} the result image will be a binary matrix with all pixels within the color range being mapped to 1 and all others to 0. The OpenCV function \emph{findContours}\cite{opencv_man_struct_analysis} in combination with \emph{boundingRect}\cite{opencv_man_struct_analysis} returns a rectangle object for each contour\footnote{def. contour: the outline of a figure or body; the edge or line that defines or bounds a shape or object\cite{dict_contour}} in the image. Additionally we have to set a minimum size of these rectangles and discard the smaller ones, because really small rectangles tend to be irrelevant objects (that just happens to match the beacon colors) or errors in detection.
-The only relevant information for storing are these rectangles and the associated colors. 
+After the \emph{inRange} function call\cite{opencv_man_arrays} the result image will be a binary matrix with all pixels within the color range being mapped to 1 and all others to 0. The OpenCV function \emph{findContours}\cite{opencv_man_struct_analysis} in combination with \emph{boundingRect}\cite{opencv_man_struct_analysis} returns a rectangle object for each contour\footnote{The outline of a figure or body; the edge or line that defines or bounds a shape or object\cite{dict_contour}} in the image.
+
+Additionally we have to set a minimum size of these rectangles and discard the smaller ones, because really small rectangles tend to be irrelevant objects (that just happens to match the beacon colors) or errors in detection.
+The only relevant information for storing are these rectangles and the associated colors.
 
 \subsection{Advantages of using \emph{inRange}-Color-Mapping}
 The biggest advantage by far is the improved frame rate. When using Histogram-based color detection we encountered severe latency problems (leading to a maximum frame rate of $\frac{1}{4}$ fps), which made our robot inoperable. This malfunction arises with the usage of the OpenCV backprojection functions, which basically takes the target's color-probability and creates a binary image out of the camera frame with only displaying objects that would map this probability.
@@ -48,10 +50,11 @@ Implementation mainly done by Daniel Eberharter. \\
 Further development through Stefan Haselwanter and Claudio Canella.
 
 \subsection{Motivation}
-The detection of beacons is vital for the used localization algorithm (see chapter \ref{sec:localization}), therefore it is necessary to determine if a object is a beacon or not with a high confidence.
+The detection of beacons is vital for the used localization algorithm (see section \ref{sec:localization}), therefore it is necessary to determine if a object is a beacon or not with a high confidence.
 
 \subsection{Approach}
-First of we define a set of beacons we use as constants, with the contained information being the upper- and lower-color and the respective coordinates on the test-field. To conclude that two rectangles (returned by the color-tracking algorithm) belong to a beacon we have to check whether these rectangles are in near proximity\footnote{Meaning that the lower edge of the upper rectangle is within the tolerance bounds of the upper edge of the lower rectangle}, with keeping in mind that the order of upper and lower color is not interchangeable. 
+First of we define a set of beacons we use as constants, with the contained information being the upper- and lower-color and the respective coordinates on the test-field. To conclude that two rectangles (returned by the color-tracking algorithm) belong to a beacon we have to check whether these rectangles are in near proximity\footnote{Meaning that the lower edge of the upper rectangle is within the tolerance bounds of the upper edge of the lower rectangle}, with keeping in mind that the order of upper and lower color is not interchangeable.
+
 As there is the possibility that the bounding rectangles do not touch each other based on the fact that the lighting is semi-optimal\footnote{With optimal lighting being a light source that hits the object with the same light intensity from each direction and therefore casts no shadow.}, we have added a tolerance parameter which loosens the bounds between the two rectangles.
 
 \subsection{Problems}
@@ -67,12 +70,12 @@ Implementation mainly done by Claudio Canella and Stefan Haselwanter. \\
 Further development through Daniel Eberharter and Christoph Haas.
 
 \subsection{Motivation}
-The self-localization and orientation of the robot is quite important because the robot has to determine where it is in the world space to apply further movements or other commands (see chapter \ref{sec:motion} and \ref{sec:caging}).
+The self-localization and orientation of the robot is quite important because the robot has to determine where it is in the world space to apply further movements or other commands (see section \ref{sec:motion} and \ref{sec:caging}).
 
-\subsection{Approach - Self-Localization}
+\subsection{Approach -- Self-Localization}
 For self-localization we use 2 beacons and simple trigonometry (\emph{law of \mbox{cosine}/\ sine} and \emph{Pythagorean theorem}) to calculate the robot position. We found this theorems easier to implement and understand as circle intersection, especially as we know the distance to the beacons and the distance between them. After we calculate our distance from the left (x-axis) and the top beacon (y-axis) we have to differentiate several cases depending on the detected beacons to get the correct position.
 
-\subsection{Approach - Orientation}
+\subsection{Approach -- Orientation}
 For the orientation we also use trigonometry. We assume the center of the camera's screen as a reference point for the robot's field of view. If we detect one beacon we can determine the angle (and thus the orientation of the robot) in which the robot is located in world space using the robot's position, the position of the detected beacon, the distance to the beacon and simple sine/cosine arithmetic.
 
 \subsection{Problems}
@@ -85,18 +88,18 @@ Implementation mainly done by Daniel Eberharter.\\
 Further development through Claudio Canella and Stefan Haselwanter.
 The code contains fragments of Alexander Hirsch's Robot WASD-Application.
 
-\subsection{Approach - Movement}
-For robot movement we decided to implement calibration for the servo-motors, with the advantage that the parameter we give to the \emph{setVelocity}\footnote{From Alexander Hirsch.} is 
-actually the movement speed of the robot (see \ref{subsec:motion_problems}). With the \emph{setVelocity} function being fixed we could reliably command the robot to move a certain distance or turn a certain angle.
+\subsection{Approach -- Movement}
+For robot movement we decided to implement calibration for the servo-motors, with the advantage that the parameter we give to the \emph{setVelocity}\footnote{From Alexander Hirsch.} is actually the movement speed of the robot (see section \ref{subsec:motion_problems}). With the \emph{setVelocity} function being fixed we could reliably command the robot to move a certain distance or turn a certain angle.
+
 The following advantage of this approach is that, if the robot has localized itself once, we can calculate the robot coordinate change from each movement. Therefore the robot would need only localize a single time and would be independent from beacons further on.
 
-\subsection{Approach - Calibration}
-The calibration was simply implemented by comparing expected movements to actual movements regarding fixed distances and further on calculating a correction factor for each movement\footnote{move forward/backward, turn left/right}. For this task the robot needs a reference object (in our case a green ball). \\
+\subsection{Approach -- Calibration}
+The calibration was simply implemented by comparing expected movements to actual movements regarding fixed distances and further on calculating a correction factor for each movement\footnote{Move forward/backward, turn left/right}. For this task the robot needs a reference object (in our case a green ball).
+
 We measure the distance to the reference object, tell the robot to move a certain distance to/from (or respectively turn left/right) it and measure the distance again. In consequence
 we get the correction factors $c_i$ as follows, where $x_{expected}$ is the expected distance/angle and $x_{actual}$ is the measured distance/angle after movement:
 
-	\[c_i = \frac{x_{expected}}{x_{actual}}\]
-
+	\[c_i = \frac{x_{expected}}{x_{actual}}\]\\
 This factor is multiplied with the velocity parameter for each movement to correct the movement behaviour. The precision can be further increased by repeating this procedure $N$ times and calculating the mean of the results.
 
 \subsection{Problems}
@@ -105,9 +108,9 @@ This factor is multiplied with the velocity parameter for each movement to corre
 		\item 	The first and major problem we encountered was that each robot had different tolerances concerning movement. This was particularly unfortunate when the two servos on 
 			the same robot ran with different speed. Although this could be fixed to a certain degree through robot calibration, it maintained to be an issue.
 		\item	One big flaw with the robot controlling software was the parameter of the \emph{setVelocity} function. The actual speed the robot moved with was unpredictable from
-			this parameter\footnote{The best approach for the velocity parameter unit is to assume it as $\frac{cm}{s}$ and pray.} - a really big improvement to the robot would be the
+			this parameter\footnote{The best approach for the velocity parameter unit is to assume it as $\frac{cm}{s}$ and pray.} -- a really big improvement to the robot would be the
 			addition of a regulation cycle, to assure the value you set is the actual velocity of the robot.
-		\item 	The servos of most robots don't move beneath a velocity of 15\footnote{Again the unit is unknown...}, probably an exception should be thrown when the associated 			parameter is lower than this threshold.
+		\item 	The servos of most robots don't move beneath a velocity of 15\footnote{Again the unit is unknown...}, probably an exception should be thrown when the associated parameter is lower than this threshold.
 	\end{itemize}
 
 
@@ -116,12 +119,16 @@ This factor is multiplied with the velocity parameter for each movement to corre
 Implementation solely done by Christoph Haas.
 
 \subsection{Motivation}
-Ball caging, or basicly caging any object is quite useful as we can combine all our knowledge to interact with the environment.
+Ball caging, or basically caging any object is quite useful as we can combine all our knowledge to interact with the environment.
 
 \subsection{Approach}
 To detect a ball we use the same approach as for detecting a beacon. If the robot has a ball in view,
-we calculate the angle to that ball and align the robot properly. After that step, the robot only has to drive forward and as the distance to the ball is known, it can stop exactly in front of the ball. Once it is in front of a ball the bar is lowered to cage it. If the alignment to the ball changes to much from the defined tolerance while moving forward the robot realigns itself. In addition the ball can also be moved while the robot tries to catch it and as long as it is in view, the robot will keep tracking it.\\
-If the robot has no ball in view, it rotates left until it detects a ball and continues with the above procedure.\\
+we calculate the angle to that ball and align the robot properly. After that step, the robot only has to drive forward and as the distance to the ball is known, it can stop exactly in front of the ball. Once it is in front of a ball the bar is lowered to cage it.
+
+If the alignment to the ball changes to much from the defined tolerance while moving forward the robot realigns itself. In addition the ball can also be moved while the robot tries to catch it and as long as it is in view, the robot will keep tracking it.
+
+If the robot has no ball in view, it rotates left until it detects a ball and continues with the above procedure.
+
 Detecting multiple balls is no problem as the robot will always choose the nearest one available.
 
 \subsection{Problems}
@@ -131,7 +138,8 @@ Detecting multiple balls is no problem as the robot will always choose the neare
 	\item Another issue was, that red balls lying in front of a red beacon could not be detected correctly. To avoid this we specialized on green balls.
 \end{itemize}
 
-\section{Usage of program}
+\section{Usage of the program}
+\label{sec:usage}
 The usage of the program depends on what the robot should do, but some steps are the same. Therefore we first discuss the steps that have to be done for all actions then the steps for each case.\\\\
 \emph{Basic Steps}
 	\begin{enumerate}
