@@ -1,10 +1,6 @@
 package at.uni.as.colortracking.robot;
 
-import java.util.Arrays;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Queue;
-import java.util.Random;
+import java.util.Stack;
 
 import jp.ksksue.driver.serial.FTDriver;
 
@@ -12,46 +8,40 @@ import org.opencv.core.Point;
 
 import android.annotation.SuppressLint;
 import android.util.Log;
-import android.view.View;
+import android.util.Pair;
+import at.uni.as.colortracking.CoordsMover;
+import at.uni.as.colortracking.ScreenInfo;
 
 @SuppressLint("UseValueOf")
-public class Robot{
+public class Robot {
 	@SuppressWarnings("unused")
 	private String TAG = "iRobot";
+
+	public static final double CATCH_DIST = 25.0;
+	public static final double COORDS_TOLERANCE = 10.0;
+	public static final double ANGLE_TOLERANCE = 10.0;
+	public static final double FIELD_OF_VIEW = 70.0;
 	
-	@SuppressWarnings("unused")
-	private static final double CATCH_DIST = 25.0;
-	private static final double COORDS_TOLERANCE = 5.0;
+	public static int MOVE_DIST =   	5; //cm
+	public static long MOVE_TIME =    5000; //ms
+	public static int MOVE_ANGL =   	 5; 
+	public static int VELOCITY_MIN =	15; //cm per second
+	public static int VELOCITY_MAX =	50; //cm per second
 	
-	public static final int DEFAULT_VELOCITY = 10;
-	public static final int DEFAULT_MOVE_TIME = 250; //ms
-	public static final int BEACONNOTFOUND_DELAY = 1000; //ms
+	public static Point home = new Point(10.0, 10.0);
 	
 	private FTDriver com;
-	
 	private Point position = null;
-	private Point positionOld = null;
-	private Queue<Point> targetCoords = new LinkedList<Point>();
+	private Double angle = null;
+	private Boolean obstacleAvoided = true;
 
-	private boolean catchObjectFlag = false;
-	private boolean moveToCoordFlag = false;
-
-	public Robot() {
-	}
-	
 	public Robot(FTDriver com) {
-		this();
 		this.com = com;
 		connect();
 	}
-	
-	public Robot(FTDriver com, Point position) {
-		this(com);
-		this.position = position;
-	}
 
 	public void connect() {
-		if( com.begin( FTDriver.BAUD9600 ) )
+		if ( com.begin( FTDriver.BAUD9600 ) )
 			Log.d( "connect", "connected" );
 		else
 			Log.d( "connect", "not connected" );
@@ -59,333 +49,241 @@ public class Robot{
 	}
 
 	public void disconnect() {
-		if(com == null || !isConnected())
-			return;
-		
+		if ( com == null || !isConnected() ) return;
+
 		com.end();
 	}
-	
-	public boolean isConnected(){
+
+	public boolean isConnected() {
 		return com != null && com.isConnected();
 	}
 
-	/**
-	 * transfers given bytes via the serial connection.
-	 * 
-	 * @param data
-	 */
-	public void comWrite(byte[] data) {
-		if (isConnected()) {
-			com.write(data);
-		}
-	}
+	private String comRead() {
+		if ( !isConnected() ) return "NOTCONNECTED";
 
-	/**
-	 * reads from the serial buffer. due to buffering, the read command is
-	 * issued 3 times at minimum and continuously as long as there are bytes to
-	 * read from the buffer. Note that this function does not block, it might
-	 * return an empty string if no bytes have been read at all.
-	 * 
-	 * @return buffer content as string
-	 */
-	public String comRead() {
 		String s = "";
 		int i = 0;
 		int n = 0;
-		while (i < 3 || n > 0) {
+		while ( i < 3 || n > 0 ) {
 			byte[] buffer = new byte[256];
-			n = com.read(buffer);
-			s += new String(buffer, 0, n);
+			n = com.read( buffer );
+			s += new String( buffer, 0, n );
 			i++;
 		}
 		return s;
 	}
 
-	/**
-	 * write data to serial interface, wait 100 ms and read answer.
-	 * 
-	 * @param data
-	 *            to write
-	 * @return answer from serial interface
-	 */
-	public String comReadWrite(byte[] data) {
-		if( com != null )
-			Log.d( "comNull", "com is not null" );
-		com.write(data);
+	private String comReadWrite( byte[] data ) {
+		if ( !isConnected() ) return "NOTCONNECTED";
+
+		if ( com != null ) Log.d( "comNull", "com is not null" );
+		com.write( data );
 		try {
-			Thread.sleep(100);
-		} catch (InterruptedException e) {
+			Thread.sleep( 100 );
+		} catch ( InterruptedException e ) {
 			// ignore
 		}
 		return comRead();
 	}
 
-	private void setLed(byte red, byte blue) {
-		comReadWrite(new byte[] { 'u', red, blue, '\r', '\n' });
+	private void setLed( byte red, byte blue ) {
+		comReadWrite( new byte[] { 'u', red, blue, '\r', '\n' } );
 	}
 
-	private void setVelocity(byte left, byte right) {
-		comReadWrite(new byte[] { 'i', left, right, '\r', '\n' });
+	private void setVelocity( byte left, byte right ) {
+		comReadWrite( new byte[] { 'i', left, right, '\r', '\n' } );
 	}
 
-	private void setBar(byte value) {
-		comReadWrite(new byte[] { 'o', value, '\r', '\n' });
+	private void setBar( byte value ) {
+		comReadWrite( new byte[] { 'o', value, '\r', '\n' } );
 	}
 
-	// move forward
-	public void moveForward(){
-		comReadWrite(new byte[] { 'w', '\r', '\n' });
-	}
-	
-	// move forward
-	public void moveForward(int v, int t){
-		setVelocity((byte)v, (byte)v);
-		
+	public void move( int s, Boolean obstacleAvoidance ) {
+		int d = (int) (s * Command.MOVE.getCal());
+		Pair<Integer, Long> moveParams = calcVelocityMoveTime( d );
+		setVelocity( (byte) ((int) moveParams.first), (byte) ((int) moveParams.first) );
+
 		try {
-			Thread.sleep(t);
-		} catch (InterruptedException e) {
+			if ( obstacleAvoidance ) {
+				int i = 0;
+				for ( i = 0; i < moveParams.second; i++ ) {
+					String sensorVals = sensor();
+					Log.d( "SENSOR_VAL", sensorVals );
+					ScreenInfo.getInstance().add( "sensor: " + sensorVals, ScreenInfo.POS_BOTTOM_RIGHT, ScreenInfo.COLOR_BLUE );
+
+					// TODO: parse sensor vals and set obstacleAvoided
+
+					obstacleAvoided = false;
+					if ( !obstacleAvoided ) {
+						stop();
+
+						turn( 90 );
+						move( 5, false );
+						turn( -90 );
+
+					} else {
+						CoordsMover cm = new CoordsMover( this );
+						
+						// TODO: think about it
+						//cm.moveTo( target );
+					}
+					
+					Thread.sleep( 900 ); // -100 because sensor() needs 100 ms
+				}
+			} else {
+				Thread.sleep( moveParams.second );
+				if ( angle != null ) updateRobotPosition( s, angle );
+			}
+		} catch ( InterruptedException e ) {
 		}
 		
 		stop();
 	}
-	
-	// move backward
-	public void moveBackward(int v, int t){
-		setVelocity((byte)-v, (byte)-v);
-		
-		try {
-			Thread.sleep(t);
-		} catch (InterruptedException e) {
-		}
-	}
-		
-	// turn left
-	public void turnLeft(int v, int t){
-		setVelocity((byte)0, (byte)v);
-			
-		try {
-			Thread.sleep(t);
-		} catch (InterruptedException e) {
-		}
-	}
-		
-		// turn right
-	public void turnRight(int v, int t){
-		setVelocity((byte)v, (byte)0);
-			
-		try {
-			Thread.sleep(t);
-		} catch (InterruptedException e) {
-		}
-	}
 
 	// turn left
-	public void turnLeft() {
-		comReadWrite(new byte[] { 'a', '\r', '\n' });
+	public void turn( int angle ) {
+		angle = optimizeTurnAngle( angle );
+		updateRobotAngle( angle );
+
+		int a = (int) (angle * Command.TURN.getCal() * 0.5);
+		Pair<Integer, Long> moveParams = calcVelocityMoveTime( a );
+		setVelocity( (byte) ((int) -moveParams.first), (byte) ((int) moveParams.first) );
+
+		try {
+			Thread.sleep( moveParams.second );
+		} catch ( InterruptedException e ) {
+		}
+		stop();
+	}
+
+	private int optimizeTurnAngle( int angle ) {
+		while ( angle > 180 )
+			angle -= 360;
+		while ( angle < -180 )
+			angle += 360;
+		return angle;
 	}
 
 	// stop
 	public void stop() {
-		comReadWrite(new byte[] { 's', '\r', '\n' });
+		comReadWrite( new byte[] { 's', '\r', '\n' } );
 	}
 
-	// turn right
-	public void turnRight() {
-		comReadWrite(new byte[] { 'd', '\r', '\n' });
-	}
-
-	// move backward
-	public void moveBackward() {
-		// logText(comReadWrite(new byte[] { 'x', '\r', '\n' }));
-		setVelocity((byte) -30, (byte) -30);
-	}
-
-	// lower bar a few degrees
-	public void barLower() {
-		comReadWrite(new byte[] { '-', '\r', '\n' });
-	}
-
-	// rise bar a few degrees
-	public void barRise() {
-		comReadWrite(new byte[] { '+', '\r', '\n' });
+	// read sensor values
+	public String sensor() {
+		return comReadWrite( new byte[] { 'q', '\r', '\n' } );
 	}
 
 	// fixed position for bar (low)
 	public void barDown() {
-		setBar((byte) 0);
+		setBar( (byte) 0 );
 	}
 
 	// fixed position for bar (high)
 	public void barUp() {
-		setBar((byte) 255);
+		setBar( (byte) 255 );
 	}
 
 	public void ledOn() {
 		// logText(comReadWrite(new byte[] { 'r', '\r', '\n' }));
-		setLed((byte) 255, (byte) 128);
+		setLed( (byte) 255, (byte) 128 );
 	}
 
 	public void ledOff() {
 		// logText(comReadWrite(new byte[] { 'e', '\r', '\n' }));
-		setLed((byte) 0, (byte) 0);
+		setLed( (byte) 0, (byte) 0 );
 	}
 
-	public void sensor(View v) {
-		comReadWrite(new byte[] { 'q', '\r', '\n' });
-	}
-	
 	public Point getPosition() {
 		return position;
 	}
 
-	public void setPosition(Point position) {
+	public void setPosition( Point position ) {
 		this.position = position;
 	}
-	
-	public void move(){
-		if(moveToCoordFlag)
-			moveToCoords();
-		else if(catchObjectFlag)
-			catchObject();
-	}
-	
-	private void catchObject(){
-		//TODO: implement
-	}
-	
-	private void moveToCoords(){
-		if(targetCoords == null || targetCoords.isEmpty()) {
-			moveToCoordFlag = false;
-			return;
-		}
-		
-		Point target = targetCoords.peek();
 
-		if(position == null) {
-			turnLeft(Robot.DEFAULT_VELOCITY, Robot.DEFAULT_MOVE_TIME);
-			
-			try {
-				Thread.sleep(BEACONNOTFOUND_DELAY);
-			} catch (InterruptedException e) {
-			}
-			
-		} else if(Math.abs(position.x - target.x) < COORDS_TOLERANCE && Math.abs(position.y - target.y) < COORDS_TOLERANCE) {
-			//robot is at target coords
-			
-			//remove target coords from queue
-			targetCoords.poll();
-			success();
-		} else {
-			if(positionOld == null) {
-				positionOld = position.clone();				
-			}
-				
-			double deltaX = Math.abs(position.x - target.x);
-			double deltaY = Math.abs(position.y - target.y);
-			double deltaXOld = Math.abs(positionOld.x - target.x);
-			double deltaYOld = Math.abs(positionOld.y - target.y);
-			
-			if(deltaX < deltaXOld && deltaY < deltaYOld) {
-				moveForward(DEFAULT_VELOCITY, DEFAULT_MOVE_TIME);
-			} else {
-				moveBackward(DEFAULT_VELOCITY, DEFAULT_MOVE_TIME);
-				turnLeft(DEFAULT_VELOCITY, DEFAULT_MOVE_TIME);
-				moveForward(DEFAULT_VELOCITY, DEFAULT_MOVE_TIME);
-			}
-			
-			positionOld = position.clone();
+	public Double getAngle() {
+		return this.angle;
+	}
+
+	public void setAngle( Double angle ) {
+		this.angle = angle;
+	}
+
+	private void updateRobotPosition( int dist, double angle ) {
+		if ( this.position == null ) return;
+
+		double dX = Math.cos( Math.toRadians( angle ) ) * dist;
+		double dY = Math.sin( Math.toRadians( angle ) ) * dist;
+
+		this.position.x += dX;
+		this.position.y += dY;
+	}
+
+	private void updateRobotAngle( double angle ) {
+		if ( this.angle == null ) return;
+
+		this.angle += angle;
+		if ( this.angle > 360 ) this.angle -= 360;
+		if ( this.angle < 0 ) this.angle += 360;
+	}
+
+	private Pair<Integer, Long> calcVelocityMoveTime( int s ) {
+		long t = MOVE_TIME;
+		int v = (int) (s / (t / 1000));
+
+		if ( v < VELOCITY_MIN ) {
+			v = VELOCITY_MIN;
+			t = Math.abs( (s * 1000) / v );
+		}
+
+		v = (s < 0) ? -v : v;
+		return new Pair<Integer, Long>( v, t );
+	}
+
+	public void doCommand( Command c, int s ) {
+		switch ( c ) {
+			case MOVE:
+				move( s, true );
+				break;
+			case TURN:
+				turn( s );
+				break;
 		}
 	}
 
-	public static Command getRandomCommand() {
-		return getRandomCommand(Arrays.asList(Command.values()));
-	}
-	
-	public static Command getRandomCommand(List<Command> commands) {
-		Random r = new Random();
-		int randomNumber = r.nextInt(commands.size());
-		
-		return commands.get(randomNumber);
-	}
-
-	public void doCommand(Command c) {
-		switch(c) {
-			case FORWARD: moveForward();break;
-			case BACKWARD: moveBackward();break;
-			case LEFT: turnLeft();break;
-			case RIGHT: turnRight();break;
-		}
-	}
-	
-	public void doCommand(Command c, int v, int t) {
-		switch(c) {
-			case FORWARD: moveForward(v,t);break;
-			case BACKWARD: moveBackward(v,t);break;
-			case LEFT: turnLeft(v,t);break;
-			case RIGHT: turnRight(v,t);break;
-		}
-	}
-
-	public void undoCommand(Command c) {
-		switch(c) {
-			case FORWARD: moveBackward();break;
-			case BACKWARD: moveForward();break;
-			case LEFT: turnRight();break;
-			case RIGHT: turnLeft();break;
-		}
-	}
-	
-	public void undoCommand(Command c, int v, int t) {
-		switch(c) {
-			case FORWARD: moveBackward(v,t);break;
-			case BACKWARD: moveForward(v,t);break;
-			case LEFT: turnRight(v,t);break;
-			case RIGHT: turnLeft(v,t);break;
-		}
-	}
-	
-	public boolean isCatchObjectEnabled() {
-		return catchObjectFlag;
-	}
-
-	public void setCatchObjectEnabled(boolean enabled) {
-		this.catchObjectFlag = enabled;
-	}
-	
-	public boolean isMoveToCoordsEnabled() {
-		return moveToCoordFlag;
-	}
-	
-	public void setMoveToCoordsEnabled(boolean enabled) {
-		this.moveToCoordFlag = enabled;
-	}
-	
-	public void setTargetCoords(List<Point> coords) {
-		if(coords == null || coords.size() == 0)
-			return;
-		
-		targetCoords.clear();
-		targetCoords.addAll(coords);
-		moveToCoordFlag = true;
-		catchObjectFlag = false;
-	}
-
-	private void success() {
+	public void success() {
 		barDown();
 		ledOn();
 		try {
-			Thread.sleep(1000);
-		} catch (InterruptedException e) {
+			Thread.sleep( 1000 );
+		} catch ( InterruptedException e ) {
 		}
-		
+
 		barUp();
 		ledOff();
 	}
-	
- 	public enum Command {
-		FORWARD,
-		BACKWARD,
-		LEFT,
-		RIGHT
+
+	public enum Command {
+		MOVE(1.0), TURN(1.0);
+
+		private double calibrationFactor;
+
+		Command(double calibrationFactor) {
+			this.calibrationFactor = calibrationFactor;
+		}
+
+		public double getCal() {
+			return calibrationFactor;
+		}
+
+		public void setCal( double calibrationFactor ) {
+			this.calibrationFactor = calibrationFactor;
+		}
+	}
+
+	public boolean isAtHome() {
+		if ( position == null ) return false;
+		return Math.abs( position.x - home.x ) < COORDS_TOLERANCE && Math.abs( position.y - home.y ) < COORDS_TOLERANCE;
 	}
 }

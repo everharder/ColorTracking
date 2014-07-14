@@ -1,8 +1,10 @@
 package at.uni.as.colortracking;
 
 import java.text.DecimalFormat;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
+import java.util.Stack;
 
 import jp.ksksue.driver.serial.FTDriver;
 
@@ -38,37 +40,47 @@ import at.uni.as.colortracking.robot.Robot;
 import at.uni.as.colortracking.robot.RobotEnviroment;
 import at.uni.as.colortracking.tracking.Color;
 import at.uni.as.colortracking.tracking.ColorTrackingUtil;
+import at.uni.as.colortracking.tracking.TrackedBeacon;
 import at.uni.as.colortracking.tracking.TrackedColor;
+import at.uni.as.colortracking.util.RobotCalibrator;
 
 public class MainActivity extends Activity implements CvCameraViewListener2,
 		OnTouchListener {
 	private static final String TAG = "ColorTracking::MainActivity";
 
-	private static float RES_DISP_H;
-	private static float RES_DISP_W;
+	public static int CAMERA_H;
+	public static int CAMERA_W;
 
 	private CameraBridgeViewBase mOpenCvCameraView;
 	private Robot robot;
-	private RobotEnviroment enviroment;
+	private RobotEnviroment environment;
 
 	// Menu Items
 	private MenuItem menuHomography = null;
 	private MenuItem menuToggleTracking = null;
 	private MenuItem menuCatchObject = null;
 	private MenuItem menuMoveTo = null;
+	private MenuItem menuCalibrateColors = null;
+	private MenuItem menuCalibrateRobot = null;
 
 	// flags
 	private boolean trackingEnabled = false;
 	private boolean calcHomography = false;
-	
+	private boolean calibration = false;
+	private boolean submitTouchedColor = false;
+	private Stack<Color> calibrationStack = new Stack<Color>();
+	private BallCatcher ballCatcher;
+	private RobotCalibrator robotCalibrator;
+	private CoordsMover coordsMover;
+
 
 	private BaseLoaderCallback mLoaderCallback = new BaseLoaderCallback(this) {
 		@Override
 		public void onManagerConnected(int status) {
-			if(status == LoaderCallbackInterface.SUCCESS) {
+			if (status == LoaderCallbackInterface.SUCCESS) {
 				Log.i(TAG, "OpenCV loaded successfully");
 				mOpenCvCameraView.enableView();
-			} else 
+			} else
 				super.onManagerConnected(status);
 		}
 	};
@@ -120,6 +132,8 @@ public class MainActivity extends Activity implements CvCameraViewListener2,
 		this.menuHomography = menu.add("Calc HOMOGRAPHY");
 		this.menuCatchObject = menu.add("Toggle catch Object");
 		this.menuMoveTo = menu.add("Move to...");
+		this.menuCalibrateColors = menu.add("Cal. Color");
+		this.menuCalibrateRobot = menu.add("Cal. Robot");
 
 		return true;
 	}
@@ -129,39 +143,51 @@ public class MainActivity extends Activity implements CvCameraViewListener2,
 		Log.i(TAG, "called onOptionsItemSelected; selected item: " + item);
 
 		if (item == this.menuToggleTracking) {
-			/*if(enviroment.getHomography() == null) {
-				Toast.makeText(this, "no homography", Toast.LENGTH_SHORT).show();
-				return true;
-			}*/
-
 			if (trackingEnabled) {
 				trackingEnabled = false;
-				Toast.makeText(this, "stopped tracking", Toast.LENGTH_SHORT).show();
+				Toast.makeText(this, "stopped tracking", Toast.LENGTH_SHORT)
+						.show();
 			} else {
 				trackingEnabled = true;
-				Toast.makeText(this, "started tracking", Toast.LENGTH_SHORT).show();
+				if(environment.getHomography() == null)
+					Toast.makeText(this, "started tracking without homography", Toast.LENGTH_SHORT).show();
+				else
+					Toast.makeText(this, "started tracking", Toast.LENGTH_SHORT).show();
+				if(robot != null)
+					robot.setPosition(null);
+					robot.setAngle(null);
 			}
 
 		} else if (item == this.menuHomography) {
 			calcHomography = true;
 		} else if (item == this.menuCatchObject) {
-			if (robot != null) {
-				if (robot.isCatchObjectEnabled()) {
-					robot.setCatchObjectEnabled(false);
+			if(robot == null || !robot.isConnected()) {
+				Toast.makeText(this, "robot not connected",Toast.LENGTH_SHORT).show();
+				return true;
+			}
+			
+			if (ballCatcher != null && ballCatcher.isBallCatchingEnabled()) {
+				ballCatcher.setBallCatchingEnabled(false);
 
-					Toast.makeText(this, "catch object disabled",Toast.LENGTH_SHORT).show();
-				} else {
-					robot.setCatchObjectEnabled(true);
+				Toast.makeText(this, "catch object disabled",Toast.LENGTH_SHORT).show();
+			} else {
+				ballCatcher = new BallCatcher(robot, environment , CAMERA_W);
+				ballCatcher.setBallCatchingEnabled(true);
+				
+				Toast.makeText(this, "catch object enabled",Toast.LENGTH_SHORT).show();
 
-					Toast.makeText(this, "catch object enabled",Toast.LENGTH_SHORT).show();
-
-					if (robot.isMoveToCoordsEnabled()) {
-						robot.setMoveToCoordsEnabled(false);
-						Toast.makeText(getApplicationContext(),"MoveTo mode disabled!", Toast.LENGTH_SHORT).show();
-					}
+				if (coordsMover != null && !coordsMover.isEmpty()) {
+					coordsMover = null;
+					Toast.makeText(getApplicationContext(),"MoveTo mode disabled!", Toast.LENGTH_SHORT).show();
 				}
 			}
-		} else if (item == this.menuMoveTo) {
+		} else if (item == this.menuMoveTo) {	
+			if(robot == null || !robot.isConnected()) {
+				Toast.makeText(this, "robot not connected",Toast.LENGTH_SHORT).show();
+				return true;
+			}
+			
+			coordsMover = new CoordsMover(robot);
 			final EditText input = new EditText(this);
 
 			input.setImeOptions(EditorInfo.IME_FLAG_NO_EXTRACT_UI);
@@ -169,6 +195,23 @@ public class MainActivity extends Activity implements CvCameraViewListener2,
 					"Enter coord pair [x:y] \nOne per line.", input);
 			alert.setPositiveButton("Ok", new MoveClickListener(input));
 			alert.show();
+		} else if (item == this.menuCalibrateColors) {
+			calibrationStack.clear();
+			List<Color> colors = Arrays.asList(Color.values());
+			colors.remove(Color.GREEN);
+			// Calibrate all colors expected GREEN!
+			calibrationStack.addAll(colors);
+
+			if (!calibrationStack.isEmpty()) {
+				calibration = true;
+			}
+		} else if(item == this.menuCalibrateRobot) {
+			/*if(robot == null || !robot.isConnected()) {
+				Toast.makeText(this, "robot not connected",Toast.LENGTH_SHORT).show();
+				return true;
+			}*/
+			
+			robotCalibrator = new RobotCalibrator(robot, environment, new Point(CAMERA_W / 2, CAMERA_H / 2) );
 		}
 
 		return true;
@@ -176,16 +219,19 @@ public class MainActivity extends Activity implements CvCameraViewListener2,
 
 	public void onCameraViewStarted(int width, int height) {
 		//get screen resolution
-		MainActivity.RES_DISP_H = width;
-		MainActivity.RES_DISP_W = height;
+		MainActivity.CAMERA_W = width;
+		MainActivity.CAMERA_H = height;
 		
-		enviroment = new RobotEnviroment();
-		robot = new Robot(new FTDriver((UsbManager) getSystemService(USB_SERVICE)));
+		environment = new RobotEnviroment();
+		robot = new Robot(new FTDriver(
+				(UsbManager) getSystemService(USB_SERVICE)));
 		if (!robot.isConnected())
-			Toast.makeText(getApplicationContext(),"unable to connect to robot!", Toast.LENGTH_SHORT).show();
+			Toast.makeText(getApplicationContext(),
+					"unable to connect to robot!", Toast.LENGTH_SHORT).show();
 		else {
-			robot.moveForward(15, 250);
-			robot.moveBackward(15, 250);
+			robot.move(10, false);
+			robot.move(-10, false);
+			robot.barUp();
 		}
 	}
 
@@ -195,37 +241,141 @@ public class MainActivity extends Activity implements CvCameraViewListener2,
 
 	public Mat onCameraFrame(CvCameraViewFrame inputFrame) {
 		Mat image = inputFrame.rgba();
+		
+		if(calcHomography) {
+			
+			//HOMOGRAPHY
+			//===============================================================================
+			environment.calcHomography(image);
+			calcHomography = false;
+		} else if(robotCalibrator != null && (robotCalibrator.isCalibrationFailed() || !robotCalibrator.isCalibrationRunning())) {
+			robotCalibrator = null;
+		} else if(robotCalibrator != null && robotCalibrator.isCalibrationRunning()) {
+			
+			//ROBOT CALIBRATION
+			//===============================================================================
+			robotCalibrator.calibrate(image);
+		} else if(calibration) {
+			
+			//COLOR CALIBRATION
+			//===============================================================================
+			Scalar rgb = new Scalar(image.get((int) (CAMERA_H / 2), (int) (CAMERA_W / 2))[0], 
+									image.get((int) (CAMERA_H / 2), (int) (CAMERA_W / 2))[1], 
+									image.get((int) (CAMERA_H / 2), (int) (CAMERA_W / 2))[2]);
+			
+			if(submitTouchedColor) {
+				calibrationStack.pop().setRGB(rgb);
 
-		//if(trackingEnabled && enviroment.getHomography() != null) {
-		if(trackingEnabled) {	
-			Map<Color, List<TrackedColor>> trackedColors = ColorTrackingUtil.detectColors(image);
-			image = ColorTrackingUtil.drawTrackedColors(image, trackedColors);
+				if (calibrationStack.isEmpty())
+					calibration = false;
+				submitTouchedColor = false;
+			} else {
+				Core.putText(
+						image,
+						calibrationStack.peek().name() + ": "
+								+ String.valueOf(rgb.val[0]) + " | "
+								+ String.valueOf(rgb.val[1]) + " | "
+								+ String.valueOf(rgb.val[2]),
+						new Point(CAMERA_W / 2 + 10, CAMERA_H / 2 - 10),
+						Core.FONT_HERSHEY_SIMPLEX, 1, new Scalar(
+								255,255,255));
+				
+				ColorTrackingUtil.drawCross(image, CAMERA_W, CAMERA_H, new Scalar(255.0, 255.0, 255.0), 2);
+			}
+		} else if(trackingEnabled) {
+			
+			//COLOR TRACKING
+			//===============================================================================
+			Map<Color, List<TrackedColor>> trackedColors = ColorTrackingUtil.detectColors(image); 
+			
+			image = ColorTrackingUtil.drawTrackedColors(image, trackedColors, environment.getHomography(), new Point(CAMERA_W / 2, CAMERA_H / 2));
 			if(image == null)
 				return inputFrame.rgba();
 			
-			//Point position = RobotEnviroment.calcPosition(RobotEnviroment.extractBeacons(trackedColors), enviroment.getHomography());
-			//robot.setPosition(position);
+			List<TrackedBeacon> beacons = RobotEnviroment.extractBeacons(trackedColors);
 			
-			// draw robot coordinates on screen
-			if (robot.getPosition() != null) {
-				Core.putText(
-						image,
-						"robot: "
-								+ String.valueOf( DecimalFormat.getIntegerInstance().format(robot.getPosition().x))
-								+ "|"
-								+ String.valueOf( DecimalFormat.getIntegerInstance().format(robot.getPosition().y)),
-						new Point(RES_DISP_H / 2, RES_DISP_W / 2),
-						Core.FONT_HERSHEY_SIMPLEX, 3, new Scalar(
-								50.0));
+			//LOCALIZATION
+			//===============================================================================
+			if(robot.getAngle() == null) {
+				/*Double angle = RobotEnviroment.calcAngle(beacons, new Point(CAMERA_W / 2, CAMERA_H / 2));
+				if(angle != null)
+					robot.setAngle(angle);*/
+				//TODO: replace with angle calculation
+				robot.setAngle(90.0);
+			}
+			if(environment.getHomography() != null && robot.getPosition() == null) {
+				/*Point position = RobotEnviroment.calcPosition(beacons, environment.getHomography());
+				if(position != null)
+					robot.setPosition(position);*/
+				robot.setPosition(new Point(RobotEnviroment.HALFWAY_X, RobotEnviroment.HALFWAY_Y));
 			}
 			
-			if (robot != null && robot.isConnected()) {				
-				robot.move();
+			if(robot.getPosition() != null && robot.getAngle() != null) {
+				//BALL CATCHING
+				//===============================================================================
+				if (ballCatcher != null && ballCatcher.isBallCatchingEnabled()) {
+					ballCatcher.catchBall(trackedColors);
+				} else if(ballCatcher != null && ballCatcher.isDone()) {
+					ScreenInfo.getInstance().add( "BALL CATCHED" , ScreenInfo.POS_BOTTOM_LEFT, 2, ScreenInfo.COLOR_BLUE );
+					
+					//catch next ball
+					ballCatcher = new BallCatcher(robot, environment, CAMERA_W);
+					ballCatcher.setBallCatchingEnabled(true);
+				}
+				
+				//COORD MOVING
+				//===============================================================================
+				if (coordsMover != null && !coordsMover.isEmpty()) {
+					if(robot.getPosition() == null)
+						robot.turn(Robot.MOVE_ANGL);
+					else
+						coordsMover.moveTo();
+				} 
 			}
-		} else if(calcHomography) {
-			enviroment.calcHomography(image);
-			calcHomography = false;
-		}
+			
+			//ROBOT INFO
+			//===============================================================================
+			if (robot != null && robot.getPosition() != null) {
+				StringBuilder screenInfo = new StringBuilder();
+				screenInfo.append("Robot-Position: ");
+				screenInfo.append(new DecimalFormat("#0.00").format(robot
+						.getPosition().x));
+				screenInfo.append("|");
+				screenInfo.append(new DecimalFormat("#0.00").format(robot.getPosition().y));
+				ScreenInfo.getInstance().add( screenInfo.toString(), ScreenInfo.POS_TOP_LEFT, ScreenInfo.COLOR_WHITE );
+			}
+			if (robot != null & robot.getAngle() != null) {
+				StringBuilder screenInfo = new StringBuilder();
+				screenInfo.append("Robot-Angle: ");
+				screenInfo.append(new DecimalFormat("#0.00").format(robot.getAngle()));
+				ScreenInfo.getInstance().add( screenInfo.toString(), ScreenInfo.POS_TOP_LEFT, ScreenInfo.COLOR_WHITE );
+			}
+			if(robot != null) {
+				StringBuilder screenInfo = new StringBuilder();
+				screenInfo.append("Robot-Calibration: ");
+				screenInfo.append("move: ");
+				screenInfo.append(new DecimalFormat("#0.00").format(Robot.Command.MOVE.getCal()));
+				screenInfo.append(" |turn: ");
+				screenInfo.append(new DecimalFormat("#0.00").format(Robot.Command.TURN.getCal()));
+				ScreenInfo.getInstance().add( screenInfo.toString(), ScreenInfo.POS_TOP_LEFT, ScreenInfo.COLOR_WHITE );
+			}
+			
+			//BEACON INFO
+			//===============================================================================
+			ScreenInfo.getInstance().add( "Beacons: ", ScreenInfo.POS_TOP_LEFT, ScreenInfo.COLOR_WHITE );
+			for(TrackedBeacon b : beacons) {
+				StringBuilder screenInfo = new StringBuilder();
+				screenInfo.append(b.getUpperColor().getColor().name());
+				screenInfo.append(" | ");
+				screenInfo.append(b.getLowerColor().getColor().name());
+
+				ScreenInfo.getInstance().add( screenInfo.toString(), ScreenInfo.POS_TOP_LEFT, ScreenInfo.COLOR_WHITE );
+			}
+			
+			ScreenInfo.getInstance().print( image );
+			
+			ColorTrackingUtil.drawScreenCenter(image, CAMERA_W, CAMERA_H, new Scalar(0.0, 0.0, 0.0), 1);
+		} 
 
 		return image;
 	}
@@ -251,13 +401,19 @@ public class MainActivity extends Activity implements CvCameraViewListener2,
 		public void onClick(DialogInterface dialog, int whichButton) {
 			String value = input.getText().toString();
 			if (value != null && value.length() > 0 && robot != null) {
-				robot.setTargetCoords(RobotEnviroment.parseCoordsList(value)); 
+				coordsMover.setTarget(RobotEnviroment.parseCoordsList(value)); 
 			}
 		}
 	}
 
 	@Override
 	public boolean onTouch(View v, MotionEvent event) {
+		if (event.getAction() != MotionEvent.ACTION_UP)
+			return true;
+
+		if (calibration)
+			submitTouchedColor = true;
+
 		return true;
 	}
 }

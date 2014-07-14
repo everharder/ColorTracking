@@ -3,13 +3,14 @@ package at.uni.as.colortracking.tracking;
 import org.opencv.core.Scalar;
 
 public enum Color {
-	RED		(new Scalar(255,   0,   0), new Scalar( 10, 100, 100)),
-	BLUE	(new Scalar(  0,   0, 255), new Scalar( 10, 120, 120)),
-	YELLOW	(new Scalar(255, 255,   0), new Scalar( 10,  50,  50)),
-	WHITE	(new Scalar(255, 255, 255), new Scalar(  0,   0,   0));
-	
-	private final Scalar hsv;
-	private final Scalar rgb;
+	RED		(new Scalar(250,  50,  40), new Scalar( 5,  50,  50)),
+	BLUE	(new Scalar( 20,  10,  30), new Scalar( 5,  50,  50)),
+	YELLOW	(new Scalar(175, 190, 110), new Scalar( 5,  50,  50)),
+	WHITE	(new Scalar(215, 190, 150), new Scalar( 0,  15,  15)),
+	GREEN   (new Scalar(0, 120, 70), new Scalar(10, 60, 60));
+
+	private Scalar hsv;
+	private Scalar rgb;
 	private final Scalar tol;
 	
 	Color(Scalar hsv, Scalar rgb, Scalar tol) {
@@ -34,5 +35,10 @@ public enum Color {
 	
 	public Scalar tol() {
 		return tol;
+	}
+	
+	public void setRGB(Scalar rgb) {
+		this.rgb = rgb;
+		this.hsv = ColorTrackingUtil.convertRGB2HSV(rgb);
 	}
 }

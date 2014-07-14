@@ -1,5 +1,6 @@
 package at.uni.as.colortracking.tracking;
 
+import java.text.DecimalFormat;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -17,14 +18,10 @@ import org.opencv.core.Size;
 import org.opencv.imgproc.Imgproc;
 
 public class ColorTrackingUtil {
-	private static final int BLUR_FACTOR = 11; // needs to be odd
-	public static int FOREGROUND_TOLERANCE_H = 25;
-	public static int FOREGROUND_TOLERANCE_S = 50;
-	public static int FOREGROUND_TOLERANCE_V = 50;
-
-	public static final Scalar DEFAULT_TOL_HSV = new Scalar(10, 120, 120);
-	private static final double DETECTION_AREA_MIN = 500;
-	private static final int TRACKED_RECT_THICKNESS = 3;
+	//private static final int BLUR_FACTOR = 7; // needs to be odd
+	public static final double DETECTION_AREA_MIN = 1000.0;
+	public static final int TRACKED_RECT_THICKNESS = 3;
+	public static final int DEFAULT_LINE_THICKNESS = 2; 
 
 	/**
 	 * Returns the homography matrix of the image.
@@ -116,7 +113,6 @@ public class ColorTrackingUtil {
 
 		List<MatOfPoint> contours = new ArrayList<MatOfPoint>();
 		Imgproc.dilate(imgBinary, imgBinary, new Mat());
-		Imgproc.medianBlur(imgBinary, imgBinary, BLUR_FACTOR);
 		Imgproc.findContours(imgBinary, contours, new Mat(),
 				Imgproc.RETR_EXTERNAL, Imgproc.CHAIN_APPROX_SIMPLE);
 
@@ -154,7 +150,7 @@ public class ColorTrackingUtil {
 			if (l != null && l.size() > 0)
 				detectedObjects.put(c, l);
 		}
-
+		
 		rgb.release();
 		hsv.release();
 
@@ -162,20 +158,35 @@ public class ColorTrackingUtil {
 	}
 
 	public static Mat drawTrackedColors(Mat image,
-			Map<Color, List<TrackedColor>> trackedColors) {
+			Map<Color, List<TrackedColor>> trackedColors, Mat homography, Point screenCenter) {
 		if (image == null || trackedColors == null)
 			return null;
 
 		for (Color c : trackedColors.keySet()) {
 			for (TrackedColor t : trackedColors.get(c)) {
 				Rect rect = t.getBorders();
+				
+				//draw rectangle
 				Core.rectangle(image, new Point(rect.x, rect.y), new Point(
 						rect.x + rect.width, rect.y + rect.height), c.rgb(),
 						TRACKED_RECT_THICKNESS);
+				
+				//draw distance
+				if(homography != null) {
+					t.calcDistance(homography);
+					Core.putText(image, "d: " + DecimalFormat.getIntegerInstance().format(t.getDistance()) + " ", new Point(t.getBottom().x - 10, t.getBottom().y - 20), Core.FONT_HERSHEY_SIMPLEX, 0.5, new Scalar(255.0, 255.0, 255.0));
+				}
+				
+				//draw angle
+				Core.putText(image, DecimalFormat.getIntegerInstance().format(t.getAngle(screenCenter)), new Point(t.getBottom().x - 10, t.getBottom().y - 30), Core.FONT_HERSHEY_SIMPLEX, 0.5, new Scalar(255.0, 255.0, 255.0));
 			}
 		}
 
 		return image;
+	}
+	
+	public static Mat drawTrackedColors(Mat image, Map<Color, List<TrackedColor>> trackedColors, Point screenCenter) {
+		return drawTrackedColors(image, trackedColors, null, screenCenter);
 	}
 
 	// Not HSV full!!
@@ -212,5 +223,28 @@ public class ColorTrackingUtil {
 		v = 255 * m;
 		
 		return new Scalar(h, s, v);
+	}
+	
+	public static void drawCross(Mat image, int w, int h, Scalar color, int size) {
+		Core.line(image, new Point(0.0, h / 2), new Point(w, h / 2) , color, size);
+		Core.line(image, new Point(w / 2, 0.0), new Point(w / 2, h) , color, size);
+	}
+	
+	public static void drawScreenCenter(Mat image, int w, int h, Scalar color, int size) {
+		Core.line(image, new Point(w / 2, 0.0), new Point(w / 2, h) , color, size);
+	}
+
+	public static TrackedColor getBiggestContour(List<TrackedColor> list) {
+		TrackedColor maxContour = null;
+		double maxArea = -1;
+		
+		for(TrackedColor c : list) {
+			if(c.getBorders().area() > maxArea) {
+				maxContour = c;
+				maxArea = c.getBorders().area();
+			}
+		}
+		
+		return maxContour;
 	}
 }
